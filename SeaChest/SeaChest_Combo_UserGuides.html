@@ -18,8 +18,8 @@
   <LI><A HREF="#file9">SeaChest_Lite</A>
   <LI><A HREF="#file10">SeaChest_NVMe</A>
   <LI><A HREF="#file11">SeaChest_PowerControl</A>
-  <LI><A HREF="#file12">SeaChest_Security</A>
-  <LI><A HREF="#file13">SeaChest_SMART</A>
+  <LI><A HREF="#file12">SeaChest_SMART</A>
+  <LI><A HREF="#file13">SeaChest_Security</A>
   <LI><A HREF="#file14">Tool Usage Hints</A>
   <LI><A HREF="#file15">General Usage Hints Linux</A>
   <LI><A HREF="#file16">General Usage Hints Windows</A>
@@ -182,10 +182,10 @@ licenses shown below.
 <H1>SeaChest_Basics 2/28</H1>
 [<A HREF="#top">top</A>][<A HREF="#file1">prev</A>][<A HREF="#file3">next</A>]
 <PRE>
-SeaChest_Basics                                            Revision: 04-Dec-2023
+SeaChest_Basics                                            Revision: 31-Jul-2025
 ===============================================================================
  SeaChest_Basics - Seagate drive utilities
- Copyright (c) 2014-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+ Copyright (c) 2014-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
  See Version History below.
 ===============================================================================
 Welcome to Seagate's SeaChest Basics diagnostic software.
@@ -258,10 +258,10 @@ Examples - Windows
 
 ==========================================================================================
  SeaChest_Basics - Seagate drive utilities - NVMe Enabled
- Copyright (c) 2014-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
- SeaChest_Basics Version: 3.5.4-6_2_0 X86_64
- Build Date: Dec  1 2023
- Today: Mon Dec  4 10:44:18 2023	User: current user
+ Copyright (c) 2014-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+ SeaChest_Basics Version: 3.7.2 X86_64
+ Build Date: Jul 30 2025
+ Today: 20250731T113321	User: current user
 ==========================================================================================
 Usage
 =====
@@ -299,7 +299,9 @@ Examples
 	SeaChest_Basics -d /dev/sg&lt;#&gt; --trim 1000 --trimRange 2000
 	SeaChest_Basics -d /dev/sg&lt;#&gt; --provision 134217728
 	SeaChest_Basics -d /dev/sg&lt;#&gt; --setMaxLBA 134217728
+	SeaChest_Basics -d /dev/sg&lt;#&gt; --setMaxLBA 134217728 --changeIdString
 	SeaChest_Basics -d /dev/sg&lt;#&gt; --restoreMaxLBA
+	SeaChest_Basics -d /dev/sg&lt;#&gt; --capacityModelNumberMapping
 
 Return codes
 ============
@@ -314,11 +316,25 @@ Return codes
 	7 = Cannot Open File
 	8 = File Already Exists
 	9 = Need Elevated Privileges
+	10 = Not enough resources
+	11 = Error Writing File
+	12 = Device not found when opening handle.
+	13 = Device not opened. Handle is busy.
+	14 = Insecure Directory to read or write file
 	Anything else = unknown error
 
 
 Utility Options
 ===============
+	--csmiIgnorePort (Obsolete)
+		This option is obsolete and will be removed in future versions.
+
+	--csmiUsePort (Obsolete)
+		This option is obsolete and will be removed in future versions.
+
+	--csmiVerbose (Obsolete)
+		This option is obsolete and will be removed in future versions.
+
 	--echoCommandLine
 		Echo the command line entered into the utility on the screen.
 
@@ -445,6 +461,9 @@ Utility Arguments
 			interfaceNVME = show devices on an NVMe interface
 			sd - show sd device handles
 			sgtosd - show the sd and sg device handle mapping
+			ignoreCSMI - do not scan for any CSMI devices
+			allowDuplicates - allow drives with both CSMI and PD handles
+			                  to show up multiple times in the list
 
 	-S, --Scan
 		This option is the same as --scan or -s,
@@ -460,6 +479,7 @@ Utility Arguments
 	-d, --device [deviceHandle | all]
 		Use this option with most commands to specify the device
 		handle on which to perform an operation. Example: /dev/sg&lt;#&gt;
+		CSMI device handles can be specified as &lt;error&lt;#&gt;&lt;#&gt;&lt;#&gt;&gt;
 		To run across all devices detected in the system, use the
 		&quot;all&quot; argument instead of a device handle.
 		Example: -d all
@@ -491,6 +511,14 @@ Utility Arguments
 	--fastDiscovery
 		Use this option  to issue a fast scan on the specified drive. 
 
+	--capacityModelNumberMapping
+		Use this option to display the capacity model number mapping
+		TBD
+
+	--changeIdString
+		Use this option to change ID string according to capacity - model number
+		mapping. Need to use together with --setMaxLBA or --restoreMaxLBA
+
 	--checkPowerMode
 		Get the current power mode of a drive.
 		On SCSI devices, this will only work if the drive has
@@ -519,8 +547,8 @@ Utility Arguments
 		for the specific model drive. Improper use of this option may
 		harm a device and or its data. You may specify the path (without
 		spaces) if the firmware data file is in a different location.
-		This option will use segmented download by default. Use the
-		--downloadMode option to specify a different download mode.
+		This option will use auto mode by default to choose the best method
+		for updating the drive firmware. Use the --downloadMode option to		specify a different download mode.
 
 		WARNING: Firmware updates may affect all LUNs/namespaces
 		         for devices with multiple logical units or namespaces.
@@ -995,17 +1023,61 @@ v3.5.4  01-Dec-2023  Updated to newer opensea-libs to pull in low-level fixes.
                      response to SAT A1h CDB.
                      Fixed a bug in FreeBSD causing non-data ATA commands to report
                      all zeroes instead of expected output in RTFRs.
-                     
+v3.6.2  28-Aug-2024  Pull in security updates and low-level bug fixes from opensea-libs.
+                     CISS RAID device support for Linux (CCISS, HPSA, and SmartPQI drivers)
+                     Fixed capacity output after changing MaxLBA value on SATA and SAS.
+                     dded new options to change a device's MN when changing the maxLBA to.
+                     This new feature is supported only on new products with ACS-6 
+                     that support changing the MN. A log page describes the other MN's
+                     available at different capacities that can be used.
+                     Fixed memory leak in --progress option.
+                     All config files and firmware files must now be loaded from secured directories.
+                     Secured directories are owned by the user or root and do not allow writing to other users/groups.
+                     Fixed incorrect parameter for activate option. Backwards compatibility in 
+                     the API was able to catch this without causing an error.
+                     Added SMART trip reason when SMART trip is detected (As SeaChest_SMART has).
+                     Improved SMART trip detection algorithm when smart return status command
+                     is not available and attributes and thresholds must be used instead.
+                     SMART trip warning is now formatted according to text from SFF-8055.
+v3.7.0  28-May-2025  Added support for low-level SCSI rescan in Linux when passing aggressive scan flag -S.
+                     Refactor reading SCSI capacity code which may reduce total commands issued.
+                     Refactored looking up supported SCSI commands with Report Supported operations codes and
+                     legacy CmdDT bit in Inquiry which reduces total commands issued.
+                     Source code level support for OpenBSD, NetBSD, and DragonflyBSD now available.
+                     More source code hardening implemented with new bounds checking functions from
+                     opensea-common library (behave similar to Annex K in C11).
+                     Fixed a bug in reading device information (-i) on USB devices causing the information to be
+                     incomplete.
+                     Fixed big endian system support for all devices, but especially for NVMe.
+                     Fixed looking up SD to SG device handles in Linux.
+                     Added new exit codes for Device Not Found when opening the handle and Device Busy when
+                     attempting to open a handle.
+                     Enhanced file security API to display recommended actions to modify directories to be 
+                     compatible with security requirements when reading or writing a file.
+                     Fixed a crash when reading/writing files located at / in unix-like systems.
+                     Fixed exit code when -d all or --modelMatch are used but all devices are skipped so that 
+                     the exit code is not set to 0 (success) when all the devices were skipped.
+                     Fixed parsing some CLI options to allow empty units like previous versions.
+v3.7.2  07-Jul-2025  Fixed a bug with scan not showing any output in specific circumstances where number of successfully
+                     enumerated devices is equivalent to the number of unsuccessfully enumerated devices.
+                     Added new exit code for when paths are detected as insecure to be resolved by the user before
+                     files will be accessed in these directories (see https://github.com/Seagate/openSeaChest/wiki/Secure-File-And-Path).
+                     Fixed a check for reading correct mode page which may cause changing some SAS features to fail.
+                     Fixed incorrect protocol specified in ATA download microcode passthrough command. This causes firmware updates
+                     to hang when the device does not support the download DMA command.
+                     Fixed NVMe firmware update in Windows 11 23H2 and 24H2.
+                     Disabled extra CSMI related device scan in Windows that can cause a hang on some chipsets.
+                     Added some more legacy USB devices to list of known devices to support these better when they are used.
 </PRE>
 <HR>
 <A NAME="file3">
 <H1>SeaChest_Configure 3/28</H1>
 [<A HREF="#top">top</A>][<A HREF="#file2">prev</A>][<A HREF="#file4">next</A>]
 <PRE>
-SeaChest_Configure                                         Revision: 04-Dec-2023
+SeaChest_Configure                                         Revision: 31-Jul-2025
 ===============================================================================
  SeaChest_Configure - Seagate drive utilities
- Copyright (c) 2014-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+ Copyright (c) 2014-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
  See Version History below.
 ===============================================================================
 Welcome to Seagate's SeaChest_Configure diagnostic software.
@@ -1070,10 +1142,10 @@ Examples - Windows
         SeaChest_Configure -d PD0 --deviceInfo
 ==========================================================================================
  SeaChest_Configure - Seagate drive utilities - NVMe Enabled
- Copyright (c) 2014-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
- SeaChest_Configure Version: 2.5.0-6_2_0 X86_64
- Build Date: Dec  1 2023
- Today: Mon Dec  4 10:44:18 2023	User: current user
+ Copyright (c) 2014-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+ SeaChest_Configure Version: 2.9.2 X86_64
+ Build Date: Jul 30 2025
+ Today: 20250731T113321	User: current user
 ==========================================================================================
 Usage
 =====
@@ -1112,6 +1184,8 @@ Examples
 	SeaChest_Configure -d /dev/sg&lt;#&gt; --setSCSIMP 08:2:2:1=0
 	SeaChest_Configure -d /dev/sg&lt;#&gt; --setSCSIMP file=modePageToChange.txt
 	SeaChest_Configure -d /dev/sg&lt;#&gt; --provision 134217728
+	SeaChest_Configure -d /dev/sg&lt;#&gt; --setMaxLBA 134217728 --changeIdString
+	SeaChest_Configure -d /dev/sg&lt;#&gt; --capacityModelNumberMapping
 	SeaChest_Configure -d /dev/sg&lt;#&gt; --dcoIdentify
 	SeaChest_Configure -d /dev/sg&lt;#&gt; --dcoRestore
 	SeaChest_Configure -d /dev/sg&lt;#&gt; --dcoFreezeLock
@@ -1130,11 +1204,25 @@ Return codes
 	7 = Cannot Open File
 	8 = File Already Exists
 	9 = Need Elevated Privileges
+	10 = Not enough resources
+	11 = Error Writing File
+	12 = Device not found when opening handle.
+	13 = Device not opened. Handle is busy.
+	14 = Insecure Directory to read or write file
 	Anything else = unknown error
 
 
 Utility Options
 ===============
+	--csmiIgnorePort (Obsolete)
+		This option is obsolete and will be removed in future versions.
+
+	--csmiUsePort (Obsolete)
+		This option is obsolete and will be removed in future versions.
+
+	--csmiVerbose (Obsolete)
+		This option is obsolete and will be removed in future versions.
+
 	--echoCommandLine
 		Echo the command line entered into the utility on the screen.
 
@@ -1222,6 +1310,7 @@ Utility Arguments
 	-d, --device [deviceHandle | all]
 		Use this option with most commands to specify the device
 		handle on which to perform an operation. Example: /dev/sg&lt;#&gt;
+		CSMI device handles can be specified as &lt;error&lt;#&gt;&lt;#&gt;&lt;#&gt;&gt;
 		To run across all devices detected in the system, use the
 		&quot;all&quot; argument instead of a device handle.
 		Example: -d all
@@ -1244,6 +1333,9 @@ Utility Arguments
 			interfaceNVME = show devices on an NVMe interface
 			sd - show sd device handles
 			sgtosd - show the sd and sg device handle mapping
+			ignoreCSMI - do not scan for any CSMI devices
+			allowDuplicates - allow drives with both CSMI and PD handles
+			                  to show up multiple times in the list
 
 	-i, --deviceInfo
 		Show information and features for the storage device
@@ -1283,6 +1375,32 @@ Utility Arguments
 
 	--fastDiscovery
 		Use this option  to issue a fast scan on the specified drive. 
+
+	--capacityModelNumberMapping
+		Use this option to display the capacity model number mapping
+		TBD
+
+	--changeIdString
+		Use this option to change ID string according to capacity - model number
+		mapping. Need to use together with --setMaxLBA or --restoreMaxLBA
+
+	--configCDLSettings [fileName]
+		Use this option to change the CDL settings. Note that the
+		CDL Feature Set is not supported on all devices.
+		Use --deviceInfo option to see if CDL is supported.
+		Provided JSON file will be used to read the new CDL settings.
+		Use --skipValidation option to skip the validation on provided JSON file.
+		If provided settings are not valid, then error will be returned.
+
+	--logMode   [ raw | binary ]
+		Use this option with others options such as --getNvmeLogPage
+		and --deviceInfo to show a buffer output or to
+		create a binary file.
+		Supported Modes:
+			raw    - prints the raw buffer on stdout
+			  
+			binary - writes data to a file with device
+			         Serial Number &amp; time stamp
 
 	--phySpeed [0 | 1 | 2 | 3 | 4 | 5]
 		Use this option to change the PHY speed to a
@@ -1324,6 +1442,25 @@ Utility Arguments
 		required after this command before resetting or setting a new
 		max LBA.
 
+	--setTimestamp
+		Use this option to set the date and time timestamp on the device
+		to the time based on your current system clock.
+
+	--showCDLSettings [raw | json]
+		Use this option to show the current CDL settings.
+		Only drives supporting the CDL feature will show this data and
+		only supported CDL settings will be shown.
+		Output modes:
+		  raw - Show current CDL settings on screen.
+		  json - Create JSON file with current CDL settings.
+		         Time unit for time related fields in output are
+		         s - seconds
+		         ms - milliseconds
+		         us - microseconds
+		         500 ns - 500 nanoseconds(SAS only)
+		         10 ms - 10 milliseconds(SAS only)
+		         500 ms - 500 milliseconds(SAS only)
+
 	--writeCache [info | enable | disable]
 		Use this option to enable or disable write cache
 		support on a drive. Use the &quot;info&quot; argument to get
@@ -1335,6 +1472,12 @@ Utility Arguments
 
 	SATA Only:
 	========
+	--CDLfeature [enable | disable]
+		Enables or disables Command Duration Limit (CDL) support for
+		devices. To disable CDL use --CDLfeature disable. Note that the
+		CDL Feature Set is not supported on all devices.
+		Use --deviceInfo option to see if CDL is supported.
+
 	--dcoFreezeLock	(SATA Only)
 		Use this option to issue the DCO freeze-lock command. Issuing
 		this command will prevent the ability to modify available capabilities
@@ -1454,9 +1597,15 @@ Utility Arguments
 		Note: Some products will support low, but not the ultra
 		      low current spinup mode.
 
-	--puisFeature [ enable | disable ]  (SATA Only)
+	--puisFeature [ info | spinup | enable | disable ]  (SATA Only)
 		Use this option to enable or disable the power up in standby
 		(PUIS) feature on SATA drives. 
+		Arguments:
+		    info    - display information about the PUIS support on the device
+		    spinup  - issue the PUIS spinup set features command to spin up
+		              the device to active/idle state.
+		    enable  - enable the PUIS feature using setfeatures command
+		    disable - disable the PUIS feature using setfeatures command
 		Note: If this is configured on the drive with a jumper, this
 		      command will fail.
 		Note2: Not all products support this feature.
@@ -1484,6 +1633,7 @@ Utility Arguments
 		the drive processes the command, not the time it is received.
 		When using this option, the setting is non-volatile.
 		Use this with the --volatile flag to make the
+		setting volatile.
 		Use the &quot;info&quot; argument to get the current status
 		of the read timer. A value of 0 means that all possible
 		error recovery will be performed before returning status.
@@ -1536,6 +1686,7 @@ Utility Arguments
 		the drive processes the command, not the time it is received.
 		When using this option, the setting is non-volatile.
 		Use this with the --volatile flag to make the
+		setting volatile.
 		Use the &quot;info&quot; argument to get the current status
 		of the write timer. A value of 0 means that all possible
 		error recovery will be performed before returning status.
@@ -1548,6 +1699,27 @@ Utility Arguments
 		Using the &quot;default&quot; argument restores default settings.
 		Note: On some SAT HBAs/bridges, status will not be able to be
 		determined due to HBA/bridge limitations.
+
+	--wrv [ info | all | vendor | # | disable ]	(SATA Only)
+		This option can report the current configuration of the
+		ATA Write-Read-Verify feature, enable the feature, or
+		disable the feature.
+		Enabling this feature instructs the device to perform a
+		verification of all data after it has been written.
+		Enabling this may result in lower device performance.
+		If write caching is enabled, this feature may return
+		completion before writing to the medium and verifying
+		the medium. If Write caching is disabled, the write and
+		verification must complete before returning command status.
+		Argument usage:
+		  info    - Display the current status of the feature
+		  all     - set verification on for all written sectors
+		  vendor  - set verification for the 1st vendor specific
+		            number of sectors.
+		  #       - Perform verification for the first user defined
+		            number of sectors. Note: This is rounded up to the
+		            nearest 1024 sectors. Max value of 261120 sectors.
+		  disable - disable the Write-Read-Verify feature.
 
 
 	SAS Only:
@@ -1884,16 +2056,57 @@ v2.5.0  01-Dec-2023  Updated to newer opensea-libs to pull in low-level fixes.
                      response to SAT A1h CDB.
                      Fixed a bug in FreeBSD causing non-data ATA commands to report
                      all zeroes instead of expected output in RTFRs.
-</PRE>
+v2.7.1  28-Aug-2024  Pull in security updates and low-level bug fixes from opensea-libs.
+                     CISS RAID device support for Linux (CCISS, HPSA, and SmartPQI drivers)
+                     Added new options to change a device's MN when changing the maxLBA to.
+                     This new feature is supported only on new products with ACS-6 
+                     that support changing the MN. A log page describes the other MN's
+                     available at different capacities that can be used.
+                     Updated PUIS feature set options. Note: This will be removed from
+                     configure and is available in PowerControl going forward.
+                     Added options to configure ATA Write-read-verify feature.
+                     Changing SCSI Mode pages from a file now requires secured directories.
+                     These directories (and those above it) must only be available to the user/root/admin
+                     and not writable by other users or groups.
+v2.9.0  28-May-2025  Added support for low-level SCSI rescan in Linux when passing aggressive scan flag -S.
+                     Refactor reading SCSI capacity code which may reduce total commands issued.
+                     Refactored looking up supported SCSI commands with Report Supported operations codes and
+                     legacy CmdDT bit in Inquiry which reduces total commands issued.
+                     Source code level support for OpenBSD, NetBSD, and DragonflyBSD now available.
+                     More source code hardening implemented with new bounds checking functions from
+                     opensea-common library (behave similar to Annex K in C11).
+                     Fixed a bug in reading device information (-i) on USB devices causing the information to be
+                     incomplete.
+                     Fixed big endian system support for all devices, but especially for NVMe.
+                     Fixed looking up SD to SG device handles in Linux.
+                     Added new exit codes for Device Not Found when opening the handle and Device Busy when
+                     attempting to open a handle.
+                     Enhanced file security API to display recommended actions to modify directories to be 
+                     compatible with security requirements when reading or writing a file.
+                     Fixed a crash when reading/writing files located at / in unix-like systems.
+                     Fixed exit code when -d all or --modelMatch are used but all devices are skipped so that 
+                     the exit code is not set to 0 (success) when all the devices were skipped.
+                     Added --setTimestamp option to set the drive timestamp to the current host time.
+                     Fixed a bug reading the SCT error recovery timers due to incorrect endianness.
+                     Added additional check to --setMaxLBA to confirm that the maxLBA changed as expected since SAS drives
+                     are allowed to ignore this request without an error.
+                     Fixed parsing some CLI options to allow empty units like previous versions.
+v2.9.2  07-Jul-2025  Fixed a bug with scan not showing any output in specific circumstances where number of successfully
+                     enumerated devices is equivalent to the number of unsuccessfully enumerated devices.
+                     Added new exit code for when paths are detected as insecure to be resolved by the user before
+                     files will be accessed in these directories (see https://github.com/Seagate/openSeaChest/wiki/Secure-File-And-Path).
+                     Fixed a check for reading correct mode page which may cause changing some SAS features to fail.
+                     Disabled extra CSMI related device scan in Windows that can cause a hang on some chipsets.
+                     Added some more legacy USB devices to list of known devices to support these better when they are used.</PRE>
 <HR>
 <A NAME="file4">
 <H1>SeaChest_Erase 4/28</H1>
 [<A HREF="#top">top</A>][<A HREF="#file3">prev</A>][<A HREF="#file5">next</A>]
 <PRE>
-SeaChest_Erase                                             Revision: 04-Dec-2023
+SeaChest_Erase                                             Revision: 31-Jul-2025
 ===============================================================================
  SeaChest_Erase - Seagate drive utilities
- Copyright (c) 2014-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+ Copyright (c) 2014-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
  See Version History below.
 ===============================================================================
 Welcome to Seagate's SeaChest_Erase diagnostic software.
@@ -1971,10 +2184,10 @@ Examples - Windows
 
 ==========================================================================================
  SeaChest_Erase - Seagate drive utilities - NVMe Enabled
- Copyright (c) 2014-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
- SeaChest_Erase Version: 4.3.6-6_2_0 X86_64
- Build Date: Dec  1 2023
- Today: Mon Dec  4 10:44:18 2023	User: current user
+ Copyright (c) 2014-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+ SeaChest_Erase Version: 4.7.3 X86_64
+ Build Date: Jul 30 2025
+ Today: 20250731T113321	User: current user
 ==========================================================================================
 Usage
 =====
@@ -2023,6 +2236,11 @@ Return codes
 	7 = Cannot Open File
 	8 = File Already Exists
 	9 = Need Elevated Privileges
+	10 = Not enough resources
+	11 = Error Writing File
+	12 = Device not found when opening handle.
+	13 = Device not opened. Handle is busy.
+	14 = Insecure Directory to read or write file
 	---SeaChest_Erase specific exit codes---
 	32 = Zero Validation Failure
 	Anything else = unknown error
@@ -2030,6 +2248,15 @@ Return codes
 
 Utility Options
 ===============
+	--csmiIgnorePort (Obsolete)
+		This option is obsolete and will be removed in future versions.
+
+	--csmiUsePort (Obsolete)
+		This option is obsolete and will be removed in future versions.
+
+	--csmiVerbose (Obsolete)
+		This option is obsolete and will be removed in future versions.
+
 	--echoCommandLine
 		Echo the command line entered into the utility on the screen.
 
@@ -2122,6 +2349,7 @@ Utility Arguments
 	-d, --device [deviceHandle | all]
 		Use this option with most commands to specify the device
 		handle on which to perform an operation. Example: /dev/sg&lt;#&gt;
+		CSMI device handles can be specified as &lt;error&lt;#&gt;&lt;#&gt;&lt;#&gt;&gt;
 		To run across all devices detected in the system, use the
 		&quot;all&quot; argument instead of a device handle.
 		Example: -d all
@@ -2150,6 +2378,9 @@ Utility Arguments
 			interfaceNVME = show devices on an NVMe interface
 			sd - show sd device handles
 			sgtosd - show the sd and sg device handle mapping
+			ignoreCSMI - do not scan for any CSMI devices
+			allowDuplicates - allow drives with both CSMI and PD handles
+			                  to show up multiple times in the list
 
 	-i, --deviceInfo
 		Show information and features for the storage device
@@ -2244,6 +2475,15 @@ Utility Arguments
 		If the restore completes without error, then the erase will proceed
 		and additional errors will only be in relation to those erasure methods.
 
+	--refreshfs
+		This option will call an OS unique low-level routine to rescan
+		a device for any file systems it can detect through the
+		partition table. The detected filesystems will vary by OS
+		and OS capabilities.
+		This option is useful to call after completing a full disk erase
+		as it may make a cached volume in the OS go away or detect that a device
+		is empty and ready to have a new file system written to it.
+
 	--showEraseSupport
 		This option checks the drive to determine which methods of
 		data erasure are supported and lists them, from fastest to
@@ -2334,6 +2574,24 @@ written according to the expectation that the device firmware will meet
 these capabilities as defined in the appropriate standards from T10, T13,
 SATA - IO, and NVMexpress.
 =========================
+	--ause
+		Use this option to allow running a sanitize operation in
+		unrestricted mode. Without this option, all sanitize options
+		are run in restricted mode by default.
+		In unrestricted mode, if a sanitize erase fails the drive enters
+		a failure state. The failure state can be cleared with a Sanitize
+		exit failure mode command, or it can be cleared with a successful
+		sanitize erase.
+		In restricted mode, if a sanitize fails, the failure state can only
+		be cleared with a successful sanitize erase.
+
+	--ipbp
+		Use this option to instruct the drive to invert the requested
+		sanitize overwrite pattern between each overwrite pass.
+		For the default pattern of all zeroes, this means that after
+		a first pass of zeroes, the second pass will be all 1's (binary)
+		or all F's (hexadecimal)
+
 	--overwrite [starting LBA]	(Clear)
 		Use this option to start an overwrite erase at
 		the specified starting LBA. Combine this option
@@ -2343,6 +2601,17 @@ SATA - IO, and NVMexpress.
 	--overwriteRange [range in # of LBAs]	(Clear)
 		Use with the overwrite option (--overwrite) to
 		erase a range of LBAs on the selected drive.
+
+	--overwritepasses [ number of overwrite passes ]
+		Specify the number of overwrite passes to use during a sanitize
+		overwrite operation. By default, only a single overwrite pass
+		is used unless this option specifies a different value.
+		The maximum number of passes varies by drive type:
+		ATA:  16 passes
+		NVMe: 16 passes
+		SCSI: 31 passes
+		Use the --ipbp option to instruct the device to invert
+		the pattern between each overwrite pass.
 
 	--pattern [repeat:asciinospaces | random | increment:startValue | file:filename]
 		Use this option with overwrite, sanitize, and format unit
@@ -2430,6 +2699,23 @@ SATA - IO, and NVMexpress.
 		and cannot be stopped
 		Example: --sanitize blockerase --poll
 
+		By default, sanitize runs in restricted exit mode, meaning the
+		only way to exit a failed sanitize is to attempt sanitize again
+		until it completes successfully. Add the --ause option to run
+		in unrestricted mode. In unrestricted mode, if sanitize fails
+		you can exit this mode with the &quot;exit failure mode&quot; command
+		or a successful sanitize command.
+
+		For Zoned block devices, the --znr option can be used
+		to stop the write pointers from resetting allowing full
+		drive verification to be performed upon completion of sanitize
+		For NVMe devices that support the deallocate feature (TRIM), the
+		--nodeallocate option can be used to prevent the deallocation of blocks at
+		completion of sanitize to allow for full drive verification.
+		NOTE: An NVMe controller may inhibit the no deallocate behavior
+		      and may deallocate anyways or fail the sanitize command when
+		      no deallocate is specified.
+
 		* blockerase on some solid state drives is very fast at less
 		than one (1) second, while others may take more that 30 seconds
 		This operation performs a physical low level block erase
@@ -2441,21 +2727,16 @@ SATA - IO, and NVMexpress.
 		data causing all previous data to be useless.
 
 		* overwrite is a physical overwrite on all current, past, and
-		potential user data. The ATA and SCSI specifications allow a
+		potential user data. The ATA, NVMe, &amp; SCSI specifications allow a
 		user defined pattern and multiple passes. SeaChest_Erase will
-		use a zero pattern and a single pass for this operation.
+		use a zero pattern and a single pass for this operation
+		by default. Use --overwritepasses and --ipbp to specify
+		the number of passes and whether to invert the pattern between
+		each overwrite pass.
 
-		* freezelock is a command to block processing of sanitize
-		operations until a power cycle is performed on a device.
-		It is only available on ATA drives. Once this command has been
-		sent, the freezelock status becomes immediate and cannot be
-		cleared until the drive has been powered off. All sanitize
-		commands, except a sanitize status will be aborted.
+		* freezelock - migrate to use of --sanitizeFreeze
 
-		* antifreezelock is a command that is designed to block a
-		freezelock command from locking out the sanitize feature set.
-		It is only available on ATA drives that support the ACS3, or
-		newer specification.
+		* antifreezelock - migrate to use of --sanitizeAntiFreeze
 
 		WARNING: Sanitize may affect all LUNs/namespaces for devices
 		         with multiple logical units or namespaces.
@@ -2496,6 +2777,13 @@ SATA - IO, and NVMexpress.
 		Specify a range to writesame to. Use this option with the
 		writeSame option in order to begin a write same operation.
 
+	--znr
+		For ZBD's (Zoned Block Devices), use this option during a
+		Sanitize or ATA Security Erase to specify leaving all zones
+		full so that full verification of erasure can be performed.
+		When this option is not specified, all zones will be empty
+		upon completion of these erases.
+
 
 	SATA Only:
 	=========
@@ -2525,6 +2813,20 @@ SATA - IO, and NVMexpress.
 		user data with a vendor specific pattern. Some Seagate
 		Instant Secure Erase will perform a cryptographic
 		erase instead of an overwrite.
+
+	--sanitizeAntiFreeze	(SATA Only)
+		Antifreezelock is a command that is designed to block a
+		freezelock command from locking out the sanitize feature set.
+		It is only available on ATA drives that support the ACS3, or
+		newer specification.
+
+	--sanitizeFreeze	(SATA Only)
+		Freezelock is a command to block processing of sanitize
+		operations until a power cycle is performed on a device.
+		It is only available on ATA drives. Once this command has been
+		sent, the freezelock status becomes immediate and cannot be
+		cleared until the drive has been powered off. All sanitize
+		commands, except a sanitize status will be aborted.
 
 
 	SAS Only:
@@ -2593,6 +2895,19 @@ SATA - IO, and NVMexpress.
 
 	NVMe Only:
 	=========
+	--nodeallocate	(NVMe Only)
+		For NVMe devices, specify this option during a sanitize to
+		leave all blocks allocated after a sanitize erase. By default
+		an NVMe controller will deallocate (TRIM/Unmap) all the LBAs.
+		Using this option allows for full verification of erasure after
+		a Sanitize command.
+		NOTE: An NVMe controller may inhibit this option in certain
+		configurations meaning the sanitize may produce a warning or
+		a failure depending on how this is configured on the controller.
+		After verifying an erasure with this option, run a deallocate/TRIM
+		across the entire device/namespace to match default behavior of
+		a sanitize erase.
+
 	--nvmFmtMetadataSet [ xlba | separate ]	(NVMe Only)
 		Use this option to specify how metadata is transmitted to
 		the host system.
@@ -2906,16 +3221,65 @@ v4.3.6  01-Dec-2023  Updated to newer opensea-libs to pull in low-level fixes.
                      response to SAT A1h CDB.
                      Fixed a bug in FreeBSD causing non-data ATA commands to report
                      all zeroes instead of expected output in RTFRs.
-</PRE>
+v4.6.0  28-Aug-2024  Pull in security updates and low-level bug fixes from opensea-libs.
+                     CISS RAID device support for Linux (CCISS, HPSA, and SmartPQI drivers)
+                     Refactored Sanitize option parsing and handling.
+                     Handle SCSI unique sanitize conditions like write after crypto/block erase
+                     and how PI fields may be invalid after these operations which affects OS
+                     read commands to suggest a user also perform a overwrite.
+                     Added --znr (Zone no reset) and --noDeallocate options for ZBDs and NVMe
+                     devices with Sanitize and ATA security erase to allow for better erase
+                     verification.
+                     Added options to specify number of overwrite passes in Sanitize overwrite
+                     as well as option to invert the patter between overwrite passes.
+                     Added option to allow running sanitize in unrestricted mode.
+                     Better handling for sanitize if in a failure condition to continue/retry a
+                     sanitize operation in failed state instead of exiting.
+                     Changed refresh FS system behavior to only run when utility knows erase fully completed
+                     Added ability to manually refresh file systems from cli option.
+                     Improved sanitization of ATA security erase password after it is done being
+                     used to make sure it is also removed from memory.
+                     Improved logic within --eraseRestoreMaxPrep to handle a few other cases and
+                     feature set interactions that were not previously handled.
+v4.7.1  28-May-2025  Added support for low-level SCSI rescan in Linux when passing aggressive scan flag -S.
+                     Refactor reading SCSI capacity code which may reduce total commands issued.
+                     Refactored looking up supported SCSI commands with Report Supported operations codes and
+                     legacy CmdDT bit in Inquiry which reduces total commands issued.
+                     Source code level support for OpenBSD, NetBSD, and DragonflyBSD now available.
+                     More source code hardening implemented with new bounds checking functions from
+                     opensea-common library (behave similar to Annex K in C11).
+                     Fixed a bug in reading device information (-i) on USB devices causing the information to be
+                     incomplete.
+                     Fixed big endian system support for all devices, but especially for NVMe.
+                     Fixed looking up SD to SG device handles in Linux.
+                     Added new exit codes for Device Not Found when opening the handle and Device Busy when
+                     attempting to open a handle.
+                     Enhanced file security API to display recommended actions to modify directories to be 
+                     compatible with security requirements when reading or writing a file.
+                     Fixed a crash when reading/writing files located at / in unix-like systems.
+                     Fixed exit code when -d all or --modelMatch are used but all devices are skipped so that 
+                     the exit code is not set to 0 (success) when all the devices were skipped.
+                     Added additional logic to --performQuickestErase so that it can handle when certain commands
+                     are not allowed on a given adapter or OS to choose a different option.
+                     Fixed a logic error with TRIM/Deallocate commands to NVMe devices in Windows.
+v4.7.3  07-Jul-2025  Fixed a bug with scan not showing any output in specific circumstances where number of successfully
+                     enumerated devices is equivalent to the number of unsuccessfully enumerated devices.
+                     Added new exit code for when paths are detected as insecure to be resolved by the user before
+                     files will be accessed in these directories (see https://github.com/Seagate/openSeaChest/wiki/Secure-File-And-Path).
+                     Fixed a check for reading correct mode page which may cause changing some SAS features to fail.
+                     Disabled extra CSMI related device scan in Windows that can cause a hang on some chipsets.
+                     Added some more legacy USB devices to list of known devices to support these better when they are used.
+                     Fixed detection of supported sanitize operations on SAS drives that may not support the AUSE mode.
+                     </PRE>
 <HR>
 <A NAME="file5">
 <H1>SeaChest_Firmware 5/28</H1>
 [<A HREF="#top">top</A>][<A HREF="#file4">prev</A>][<A HREF="#file6">next</A>]
 <PRE>
-SeaChest_Firmware                                          Revision: 04-Dec-2023
+SeaChest_Firmware                                          Revision: 31-Jul-2025
 ===============================================================================
  SeaChest_Firmware - Seagate drive utilities
- Copyright (c) 2014-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+ Copyright (c) 2014-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
  See Version History below.
 ===============================================================================
 Welcome to Seagate's SeaChest_Firmware diagnostic software.
@@ -2960,7 +3324,7 @@ Examples - Linux
         sudo SeaChest_Firmware -d /dev/sg2 -i
         sudo SeaChest_Firmware -d /dev/sg2 --fwdlInfo
         sudo SeaChest_Firmware -d /dev/sg2 --downloadFW fwfilename
-        sudo SeaChest_Firmware -d /dev/sg2 --fwdlConfig configfile.cfs
+        sudo SeaChest_Firmware -d /dev/sg2 --fwdlConfig configfile.json
 
 Usage - Windows (run as administrator)
 ======================================
@@ -2971,14 +3335,14 @@ Examples - Windows
         SeaChest_Firmware --scan
         SeaChest_Firmware -d PD2 -i
         SeaChest_Firmware -d PD2 --fwdlInfo
-        SeaChest_Firmware -d PD2 --fwdlConfig configfile.cfs
+        SeaChest_Firmware -d PD2 --fwdlConfig configfile.json
 
 ==========================================================================================
  SeaChest_Firmware - Seagate drive utilities - NVMe Enabled
- Copyright (c) 2014-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
- SeaChest_Firmware Version: 4.0.0-6_2_0 X86_64
- Build Date: Dec  1 2023
- Today: Mon Dec  4 10:44:18 2023	User: current user
+ Copyright (c) 2014-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+ SeaChest_Firmware Version: 4.3.2 X86_64
+ Build Date: Jul 30 2025
+ Today: 20250731T113321	User: current user
 ==========================================================================================
 Usage
 =====
@@ -3013,6 +3377,11 @@ Return codes
 	7 = Cannot Open File
 	8 = File Already Exists
 	9 = Need Elevated Privileges
+	10 = Not enough resources
+	11 = Error Writing File
+	12 = Device not found when opening handle.
+	13 = Device not opened. Handle is busy.
+	14 = Insecure Directory to read or write file
 	---SeaChest_Firmware specific exit codes---
 	32 = Firmware Download Complete
 	33 = Deferred Firmware Download Complete
@@ -3033,6 +3402,15 @@ Return codes
 
 Utility Options
 ===============
+	--csmiIgnorePort (Obsolete)
+		This option is obsolete and will be removed in future versions.
+
+	--csmiUsePort (Obsolete)
+		This option is obsolete and will be removed in future versions.
+
+	--csmiVerbose (Obsolete)
+		This option is obsolete and will be removed in future versions.
+
 	--echoCommandLine
 		Echo the command line entered into the utility on the screen.
 
@@ -3126,6 +3504,7 @@ Utility Arguments
 	-d, --device [deviceHandle | all]
 		Use this option with most commands to specify the device
 		handle on which to perform an operation. Example: /dev/sg&lt;#&gt;
+		CSMI device handles can be specified as &lt;error&lt;#&gt;&lt;#&gt;&lt;#&gt;&gt;
 		To run across all devices detected in the system, use the
 		&quot;all&quot; argument instead of a device handle.
 		Example: -d all
@@ -3148,6 +3527,9 @@ Utility Arguments
 			interfaceNVME = show devices on an NVMe interface
 			sd - show sd device handles
 			sgtosd - show the sd and sg device handle mapping
+			ignoreCSMI - do not scan for any CSMI devices
+			allowDuplicates - allow drives with both CSMI and PD handles
+			                  to show up multiple times in the list
 
 	-i, --deviceInfo
 		Show information and features for the storage device
@@ -3216,8 +3598,8 @@ Utility Arguments
 		for the specific model drive. Improper use of this option may
 		harm a device and or its data. You may specify the path (without
 		spaces) if the firmware data file is in a different location.
-		This option will use segmented download by default. Use the
-		--downloadMode option to specify a different download mode.
+		This option will use auto mode by default to choose the best method
+		for updating the drive firmware. Use the --downloadMode option to		specify a different download mode.
 
 		WARNING: Firmware updates may affect all LUNs/namespaces
 		         for devices with multiple logical units or namespaces.
@@ -3504,16 +3886,53 @@ v4.0.0  01-Dec-2023  Updated to newer opensea-libs to pull in low-level fixes.
                      Workaround for some SAS drives on some HBAs reporting incorrect
                      response to SAT A1h CDB.
                      Fixed a bug in FreeBSD causing non-data ATA commands to report
-                     all zeroes instead of expected output in RTFRs.</PRE>
+                     all zeroes instead of expected output in RTFRs.
+v4.2.0  28-Aug-2024  Pull in security updates and low-level bug fixes from opensea-libs.
+                     CISS RAID device support for Linux (CCISS, HPSA, and SmartPQI drivers)
+                     Fix crash when old .cfs file is provided when json is expected.
+                     All config files and firmware files must now be loaded from secured directories.
+                     Secured directories are owned by the user or root and do not allow writing to other users/groups.
+                     Fixed incorrect parameter for activate option. Backwards compatibility in 
+                     the API was able to catch this without causing an error.
+                     Added show SCSI FW info option which is based on Seagate's public
+                     SCSI commands reference manual and show more fields unique to Seagate firmware.
+v4.3.0  28-May-2025  Added support for low-level SCSI rescan in Linux when passing aggressive scan flag -S.
+                     Refactor reading SCSI capacity code which may reduce total commands issued.
+                     Refactored looking up supported SCSI commands with Report Supported operations codes and
+                     legacy CmdDT bit in Inquiry which reduces total commands issued.
+                     Source code level support for OpenBSD, NetBSD, and DragonflyBSD now available.
+                     More source code hardening implemented with new bounds checking functions from
+                     opensea-common library (behave similar to Annex K in C11).
+                     Fixed a bug in reading device information (-i) on USB devices causing the information to be
+                     incomplete.
+                     Fixed big endian system support for all devices, but especially for NVMe.
+                     Fixed looking up SD to SG device handles in Linux.
+                     Added new exit codes for Device Not Found when opening the handle and Device Busy when
+                     attempting to open a handle.
+                     Enhanced file security API to display recommended actions to modify directories to be 
+                     compatible with security requirements when reading or writing a file.
+                     Fixed a crash when reading/writing files located at / in unix-like systems.
+                     Fixed exit code when -d all or --modelMatch are used but all devices are skipped so that 
+                     the exit code is not set to 0 (success) when all the devices were skipped.
+v4.3.2  07-Jul-2025  Fixed a bug with scan not showing any output in specific circumstances where number of successfully
+                     enumerated devices is equivalent to the number of unsuccessfully enumerated devices.
+                     Added new exit code for when paths are detected as insecure to be resolved by the user before
+                     files will be accessed in these directories (see https://github.com/Seagate/openSeaChest/wiki/Secure-File-And-Path).
+                     Fixed a check for reading correct mode page which may cause changing some SAS features to fail.
+                     Fixed incorrect protocol specified in ATA download microcode passthrough command. This causes firmware updates
+                     to hang when the device does not support the download DMA command.
+                     Fixed NVMe firmware update in Windows 11 23H2 and 24H2.
+                     Disabled extra CSMI related device scan in Windows that can cause a hang on some chipsets.
+                     Added some more legacy USB devices to list of known devices to support these better when they are used.</PRE>
 <HR>
 <A NAME="file6">
 <H1>SeaChest_Format 6/28</H1>
 [<A HREF="#top">top</A>][<A HREF="#file5">prev</A>][<A HREF="#file7">next</A>]
 <PRE>
-SeaChest_Format                                            Revision: 04-Dec-2023
+SeaChest_Format                                            Revision: 31-Jul-2025
 ===============================================================================
  SeaChest_Format - Seagate drive utilities
- Copyright (c) 2014-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+ Copyright (c) 2014-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
  See Version History below.
 ===============================================================================
 Welcome to Seagate's SeaChest_Format diagnostic software.
@@ -3592,10 +4011,10 @@ Examples - Windows
 
 ==========================================================================================
  SeaChest_Format - Seagate drive utilities - NVMe Enabled
- Copyright (c) 2014-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
- SeaChest_Format Version: 3.0.4-6_2_0 X86_64
- Build Date: Dec  1 2023
- Today: Mon Dec  4 10:44:18 2023	User: current user
+ Copyright (c) 2014-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+ SeaChest_Format Version: 3.4.0 X86_64
+ Build Date: Jul 30 2025
+ Today: 20250731T113321	User: current user
 ==========================================================================================
 Usage
 =====
@@ -3609,6 +4028,7 @@ Examples
 	SeaChest_Format -d /dev/sg&lt;#&gt; --llInfo
 	SeaChest_Format -d /dev/sg&lt;#&gt; --showPhysicalElementStatus
 	SeaChest_Format -d /dev/sg&lt;#&gt; --removePhysicalElement 2
+	SeaChest_Format -d /dev/sg&lt;#&gt; --removeElementModifyZones 2
 	SeaChest_Format -d /dev/sg&lt;#&gt; --repopulateElements
 	SeaChest_Format -d /dev/sg&lt;#&gt; --showSupportedFormats
 	SeaChest_Format -d /dev/sg&lt;#&gt; --showFormatStatusLog
@@ -3635,11 +4055,25 @@ Return codes
 	7 = Cannot Open File
 	8 = File Already Exists
 	9 = Need Elevated Privileges
+	10 = Not enough resources
+	11 = Error Writing File
+	12 = Device not found when opening handle.
+	13 = Device not opened. Handle is busy.
+	14 = Insecure Directory to read or write file
 	Anything else = unknown error
 
 
 Utility Options
 ===============
+	--csmiIgnorePort (Obsolete)
+		This option is obsolete and will be removed in future versions.
+
+	--csmiUsePort (Obsolete)
+		This option is obsolete and will be removed in future versions.
+
+	--csmiVerbose (Obsolete)
+		This option is obsolete and will be removed in future versions.
+
 	--echoCommandLine
 		Echo the command line entered into the utility on the screen.
 
@@ -3740,6 +4174,7 @@ Utility Arguments
 	-d, --device [deviceHandle | all]
 		Use this option with most commands to specify the device
 		handle on which to perform an operation. Example: /dev/sg&lt;#&gt;
+		CSMI device handles can be specified as &lt;error&lt;#&gt;&lt;#&gt;&lt;#&gt;&gt;
 		To run across all devices detected in the system, use the
 		&quot;all&quot; argument instead of a device handle.
 		Example: -d all
@@ -3768,6 +4203,9 @@ Utility Arguments
 			interfaceNVME = show devices on an NVMe interface
 			sd - show sd device handles
 			sgtosd - show the sd and sg device handle mapping
+			ignoreCSMI - do not scan for any CSMI devices
+			allowDuplicates - allow drives with both CSMI and PD handles
+			                  to show up multiple times in the list
 
 	-i, --deviceInfo
 		Show information and features for the storage device
@@ -3890,6 +4328,19 @@ Data Destructive Commands
 	--removePhysicalElement [element #]
 		Use this option to remove a storage element
 		from use on a drive. When this is done, the
+		drive will erase all user data and lower the
+		capacity to a new point where the drive is still
+		usable without the provided element #.
+		Use the --showPhysicalElementStatus option to see the status
+		of the depopulation operation.
+[49m[38;5;9m		There is an additional risk when performing a remove physical element as it low-level formats
+		the drive and may make the drive inoperable if it is reset at any time while it is formatting.
+[0m		WARNING: Removing a physical element affect all LUNs/namespaces for devices
+		         with multiple logical units or namespaces.
+
+	--removeElementModifyZones [element #] (Zoned Only)
+		Use this option to remove a storage element and modify zones
+		from use on a Zoned drive (ZBD). When this is done, the
 		drive will erase all user data and lower the
 		capacity to a new point where the drive is still
 		usable without the provided element #.
@@ -4320,16 +4771,54 @@ v3.0.4  01-Dec-2023  Updated to newer opensea-libs to pull in low-level fixes.
                      response to SAT A1h CDB.
                      Fixed a bug in FreeBSD causing non-data ATA commands to report
                      all zeroes instead of expected output in RTFRs.
-</PRE>
+v3.2.0  28-Aug-2024  Pull in security updates and low-level bug fixes from opensea-libs.
+                     CISS RAID device support for Linux (CCISS, HPSA, and SmartPQI drivers)
+                     Added secure file API for reading pattern to use for formatting when user
+                     is providing a custom pattern to use for a format unit on SAS.
+                     Added --force as option to pass with --setSectorSize to force retries
+                     or attempt the commands to change sector size or recovery from bad formats.
+v3.3.0  28-May-2025  Added support for low-level SCSI rescan in Linux when passing aggressive scan flag -S.
+                     Refactor reading SCSI capacity code which may reduce total commands issued.
+                     Refactored looking up supported SCSI commands with Report Supported operations codes and
+                     legacy CmdDT bit in Inquiry which reduces total commands issued.
+                     Source code level support for OpenBSD, NetBSD, and DragonflyBSD now available.
+                     More source code hardening implemented with new bounds checking functions from
+                     opensea-common library (behave similar to Annex K in C11).
+                     Fixed a bug in reading device information (-i) on USB devices causing the information to be
+                     incomplete.
+                     Fixed big endian system support for all devices, but especially for NVMe.
+                     Fixed looking up SD to SG device handles in Linux.
+                     Added new exit codes for Device Not Found when opening the handle and Device Busy when
+                     attempting to open a handle.
+                     Enhanced file security API to display recommended actions to modify directories to be 
+                     compatible with security requirements when reading or writing a file.
+                     Fixed a crash when reading/writing files located at / in unix-like systems.
+                     Fixed exit code when -d all or --modelMatch are used but all devices are skipped so that 
+                     the exit code is not set to 0 (success) when all the devices were skipped.
+                     Added exclusive open for set sector size and fast format to reduce likelyhood of a reset while
+                     these operations are running.
+                     Added additional error checking when changing SAS sector size to confirm the drive accepted the
+                     correct size. ex: setting 4k, but drive formats to 528 instead due to not reporting an error.
+v3.4.0  07-Jul-2025  Fixed a bug with scan not showing any output in specific circumstances where number of successfully
+                     enumerated devices is equivalent to the number of unsuccessfully enumerated devices.
+                     Added new exit code for when paths are detected as insecure to be resolved by the user before
+                     files will be accessed in these directories (see https://github.com/Seagate/openSeaChest/wiki/Secure-File-And-Path).
+                     Fixed a check for reading correct mode page which may cause changing some SAS features to fail.
+                     Fixed incorrect protocol specified in ATA download microcode passthrough command. This causes firmware updates
+                     to hang when the device does not support the download DMA command.
+                     Fixed NVMe firmware update in Windows 11 23H2 and 24H2.
+                     Disabled extra CSMI related device scan in Windows that can cause a hang on some chipsets.
+                     Added some more legacy USB devices to list of known devices to support these better when they are used.
+                     Added missing option to run remove elements and modify zones for zoned devices.</PRE>
 <HR>
 <A NAME="file7">
 <H1>SeaChest_GenericTests 7/28</H1>
 [<A HREF="#top">top</A>][<A HREF="#file6">prev</A>][<A HREF="#file8">next</A>]
 <PRE>
-SeaChest_GenericTests                                      Revision: 04-Dec-2023
+SeaChest_GenericTests                                      Revision: 31-Jul-2025
 ===============================================================================
  SeaChest_GenericTests - Seagate drive utilities
- Copyright (c) 2014-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+ Copyright (c) 2014-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
  See Version History below.
 ===============================================================================
 Welcome to Seagate's SeaChest_GenericTests diagnostic software.
@@ -4419,10 +4908,10 @@ Examples - Windows
 
 ==========================================================================================
  SeaChest_GenericTests - Seagate drive utilities - NVMe Enabled
- Copyright (c) 2014-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
- SeaChest_GenericTests Version: 2.2.2-6_2_0 X86_64
- Build Date: Dec  1 2023
- Today: Mon Dec  4 10:44:18 2023	User: current user
+ Copyright (c) 2014-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+ SeaChest_GenericTests Version: 2.4.1 X86_64
+ Build Date: Jul 30 2025
+ Today: 20250731T113321	User: current user
 ==========================================================================================
 Usage
 =====
@@ -4458,11 +4947,25 @@ Return codes
 	7 = Cannot Open File
 	8 = File Already Exists
 	9 = Need Elevated Privileges
+	10 = Not enough resources
+	11 = Error Writing File
+	12 = Device not found when opening handle.
+	13 = Device not opened. Handle is busy.
+	14 = Insecure Directory to read or write file
 	Anything else = unknown error
 
 
 Utility Options
 ===============
+	--csmiIgnorePort (Obsolete)
+		This option is obsolete and will be removed in future versions.
+
+	--csmiUsePort (Obsolete)
+		This option is obsolete and will be removed in future versions.
+
+	--csmiVerbose (Obsolete)
+		This option is obsolete and will be removed in future versions.
+
 	--echoCommandLine
 		Echo the command line entered into the utility on the screen.
 
@@ -4555,6 +5058,7 @@ Utility Arguments
 	-d, --device [deviceHandle | all]
 		Use this option with most commands to specify the device
 		handle on which to perform an operation. Example: /dev/sg&lt;#&gt;
+		CSMI device handles can be specified as &lt;error&lt;#&gt;&lt;#&gt;&lt;#&gt;&gt;
 		To run across all devices detected in the system, use the
 		&quot;all&quot; argument instead of a device handle.
 		Example: -d all
@@ -4583,6 +5087,9 @@ Utility Arguments
 			interfaceNVME = show devices on an NVMe interface
 			sd - show sd device handles
 			sgtosd - show the sd and sg device handle mapping
+			ignoreCSMI - do not scan for any CSMI devices
+			allowDuplicates - allow drives with both CSMI and PD handles
+			                  to show up multiple times in the list
 
 	-i, --deviceInfo
 		Show information and features for the storage device
@@ -4979,16 +5486,43 @@ v2.2.2  01-Dec-2023  Updated to newer opensea-libs to pull in low-level fixes.
                      response to SAT A1h CDB.
                      Fixed a bug in FreeBSD causing non-data ATA commands to report
                      all zeroes instead of expected output in RTFRs.
-</PRE>
+v2.3.0  28-Aug-2024  Pull in security updates and low-level bug fixes from opensea-libs.
+                     CISS RAID device support for Linux (CCISS, HPSA, and SmartPQI drivers)
+                     Fixed a bug in getting NVMe block size which may cause occasional crashes on
+                     drives with more than 16 formats supported.
+v2.4.0  28-May-2025  Added support for low-level SCSI rescan in Linux when passing aggressive scan flag -S.
+                     Refactor reading SCSI capacity code which may reduce total commands issued.
+                     Refactored looking up supported SCSI commands with Report Supported operations codes and
+                     legacy CmdDT bit in Inquiry which reduces total commands issued.
+                     Source code level support for OpenBSD, NetBSD, and DragonflyBSD now available.
+                     More source code hardening implemented with new bounds checking functions from
+                     opensea-common library (behave similar to Annex K in C11).
+                     Fixed a bug in reading device information (-i) on USB devices causing the information to be
+                     incomplete.
+                     Fixed big endian system support for all devices, but especially for NVMe.
+                     Fixed looking up SD to SG device handles in Linux.
+                     Added new exit codes for Device Not Found when opening the handle and Device Busy when
+                     attempting to open a handle.
+                     Enhanced file security API to display recommended actions to modify directories to be 
+                     compatible with security requirements when reading or writing a file.
+                     Fixed a crash when reading/writing files located at / in unix-like systems.
+                     Fixed exit code when -d all or --modelMatch are used but all devices are skipped so that 
+                     the exit code is not set to 0 (success) when all the devices were skipped.
+                     Fixed parsing some CLI options to allow empty units like previous versions.
+v2.4.1  07-Jul-2025  Fixed a bug with scan not showing any output in specific circumstances where number of successfully
+                     enumerated devices is equivalent to the number of unsuccessfully enumerated devices.
+                     Fixed a check for reading correct mode page which may cause changing some SAS features to fail.
+                     Disabled extra CSMI related device scan in Windows that can cause a hang on some chipsets.
+                     Added some more legacy USB devices to list of known devices to support these better when they are used.</PRE>
 <HR>
 <A NAME="file8">
 <H1>SeaChest_Info 8/28</H1>
 [<A HREF="#top">top</A>][<A HREF="#file7">prev</A>][<A HREF="#file9">next</A>]
 <PRE>
-SeaChest_Info                                              Revision: 04-Dec-2023
+SeaChest_Info                                              Revision: 31-Jul-2025
 ===============================================================================
  SeaChest_Info - Seagate drive utilities
- Copyright (c) 2014-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+ Copyright (c) 2014-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
  See Version History below.
 ===============================================================================
 Welcome to Seagate's SeaChest_Info diagnostic software.
@@ -5078,10 +5612,10 @@ Examples - Windows
 
 ==========================================================================================
  SeaChest_Info - Seagate drive utilities - NVMe Enabled
- Copyright (c) 2014-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
- SeaChest_Info Version: 2.5.0-6_2_0 X86_64
- Build Date: Dec  1 2023
- Today: Mon Dec  4 10:44:18 2023	User: current user
+ Copyright (c) 2014-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+ SeaChest_Info Version: 2.9.1 X86_64
+ Build Date: Jul 30 2025
+ Today: 20250731T113321	User: current user
 ==========================================================================================
 Usage
 =====
@@ -5112,11 +5646,25 @@ Return codes
 	7 = Cannot Open File
 	8 = File Already Exists
 	9 = Need Elevated Privileges
+	10 = Not enough resources
+	11 = Error Writing File
+	12 = Device not found when opening handle.
+	13 = Device not opened. Handle is busy.
+	14 = Insecure Directory to read or write file
 	Anything else = unknown error
 
 
 Utility Options
 ===============
+	--csmiIgnorePort (Obsolete)
+		This option is obsolete and will be removed in future versions.
+
+	--csmiUsePort (Obsolete)
+		This option is obsolete and will be removed in future versions.
+
+	--csmiVerbose (Obsolete)
+		This option is obsolete and will be removed in future versions.
+
 	--echoCommandLine
 		Echo the command line entered into the utility on the screen.
 
@@ -5204,6 +5752,7 @@ Utility Arguments
 	-d, --device [deviceHandle | all]
 		Use this option with most commands to specify the device
 		handle on which to perform an operation. Example: /dev/sg&lt;#&gt;
+		CSMI device handles can be specified as &lt;error&lt;#&gt;&lt;#&gt;&lt;#&gt;&gt;
 		To run across all devices detected in the system, use the
 		&quot;all&quot; argument instead of a device handle.
 		Example: -d all
@@ -5226,6 +5775,9 @@ Utility Arguments
 			interfaceNVME = show devices on an NVMe interface
 			sd - show sd device handles
 			sgtosd - show the sd and sg device handle mapping
+			ignoreCSMI - do not scan for any CSMI devices
+			allowDuplicates - allow drives with both CSMI and PD handles
+			                  to show up multiple times in the list
 
 	-i, --deviceInfo
 		Show information and features for the storage device
@@ -5266,12 +5818,35 @@ Utility Arguments
 	--fastDiscovery
 		Use this option  to issue a fast scan on the specified drive. 
 
+	--csmiInfo
+		Use this option to show some information reported by the
+		CSMI compliant driver. This includes driver information,
+		controller information, PHY information, SAS address, and
+		SATA signature as they were reported by the driver. This
+		information can be useful when troubleshooting CSMI
+		system/driver compatibility issues.
+
 	--deviceStatistics
 		Use this option to display the device statistics reported
 		by the device. On SATA, this uses the Device Statistics
 		log, and the notifications log (if DSN feature is supported)
 		to display these statistics. On SAS, various log pages are
 		read to collect a bunch of reported parameter information.
+
+	--showCDLSettings [raw | json]
+		Use this option to show the current CDL settings.
+		Only drives supporting the CDL feature will show this data and
+		only supported CDL settings will be shown.
+		Output modes:
+		  raw - Show current CDL settings on screen.
+		  json - Create JSON file with current CDL settings.
+		         Time unit for time related fields in output are
+		         s - seconds
+		         ms - milliseconds
+		         us - microseconds
+		         500 ns - 500 nanoseconds(SAS only)
+		         10 ms - 10 milliseconds(SAS only)
+		         500 ms - 500 milliseconds(SAS only)
 
 	--showConcurrentRanges
 		Use this option to display the concurrent positioning ranges
@@ -5286,6 +5861,22 @@ Utility Arguments
 
 	SATA Only:
 	=========
+	--resetATAPhyEvents (SATA Only)
+		Use this option to reinitialize the SATA Phy event counters
+		log page back to their default values. This can be useful when
+		debugging cabling issues.
+
+	--resetDevStats [ all | general | freefall | rotating | generr | temp | transport | ssd | zoned | cdl01 | cdl23 | vendor] (SATA Only)
+		Use this option to reinitialize supported device statistics
+		to their default values. Supported statistics are indicated in
+		the output of the --deviceStatistics option.
+		Arguments to this option can be used to reinitialize specific pages or
+		all supported pages.
+
+	--showPhyEvents	(SATA Only)
+		Use this option to display a SATA device's supported
+		event counters.
+
 	--smartAttributes [raw | hybrid | analyzed]	(SATA Only)
 		The drive will display its list of supported SMART attributes.
 		Some attributes names are commonly standard and most others are
@@ -5505,16 +6096,45 @@ v2.5.0  01-Dec-2023  Updated to newer opensea-libs to pull in low-level fixes.
                      response to SAT A1h CDB.
                      Fixed a bug in FreeBSD causing non-data ATA commands to report
                      all zeroes instead of expected output in RTFRs.
-</PRE>
+v2.7.0  28-Aug-2024  Pull in security updates and low-level bug fixes from opensea-libs.
+                     CISS RAID device support for Linux (CCISS, HPSA, and SmartPQI drivers)
+                     Added Seagate vendor unique device statistics to output of --deviceStatistics
+                     Added option to show SATA Phy event counters
+v2.9.0  28-May-2025  Added support for low-level SCSI rescan in Linux when passing aggressive scan flag -S.
+                     Refactor reading SCSI capacity code which may reduce total commands issued.
+                     Refactored looking up supported SCSI commands with Report Supported operations codes and
+                     legacy CmdDT bit in Inquiry which reduces total commands issued.
+                     Source code level support for OpenBSD, NetBSD, and DragonflyBSD now available.
+                     More source code hardening implemented with new bounds checking functions from
+                     opensea-common library (behave similar to Annex K in C11).
+                     Fixed a bug in reading device information (-i) on USB devices causing the information to be
+                     incomplete.
+                     Fixed big endian system support for all devices, but especially for NVMe.
+                     Fixed looking up SD to SG device handles in Linux.
+                     Added new exit codes for Device Not Found when opening the handle and Device Busy when
+                     attempting to open a handle.
+                     Enhanced file security API to display recommended actions to modify directories to be 
+                     compatible with security requirements when reading or writing a file.
+                     Fixed a crash when reading/writing files located at / in unix-like systems.
+                     Fixed exit code when -d all or --modelMatch are used but all devices are skipped so that 
+                     the exit code is not set to 0 (success) when all the devices were skipped.
+                     Added options to reset SATA phy event counters log and reset supported SATA device statistics
+                     to their default values. This can be useful when checking for CRC errors.
+                     --deviceStatistics option will show ^ for statistics that support reset.
+v2.9.1  07-Jul-2025  Fixed a bug with scan not showing any output in specific circumstances where number of successfully
+                     enumerated devices is equivalent to the number of unsuccessfully enumerated devices.
+                     Fixed a check for reading correct mode page which may cause changing some SAS features to fail.
+                     Disabled extra CSMI related device scan in Windows that can cause a hang on some chipsets.
+                     Added some more legacy USB devices to list of known devices to support these better when they are used.</PRE>
 <HR>
 <A NAME="file9">
 <H1>SeaChest_Lite 9/28</H1>
 [<A HREF="#top">top</A>][<A HREF="#file8">prev</A>][<A HREF="#file10">next</A>]
 <PRE>
-SeaChest_Lite                                              Revision: 04-Dec-2023
+SeaChest_Lite                                              Revision: 31-Jul-2025
 ===============================================================================
  SeaChest_Lite - Seagate drive utilities
- Copyright (c) 2014-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+ Copyright (c) 2014-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
  See Version History below.
 ===============================================================================
 Welcome to Seagate's SeaChest Lite diagnostic software.
@@ -5580,10 +6200,10 @@ Examples - Windows
 
 ==========================================================================================
  SeaChest_Lite - Seagate drive utilities - NVMe Enabled
- Copyright (c) 2014-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
- SeaChest_Lite Version: 1.9.2-6_2_0 X86_64
- Build Date: Dec  1 2023
- Today: Mon Dec  4 10:44:18 2023	User: current user
+ Copyright (c) 2014-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+ SeaChest_Lite Version: 1.10.1 X86_64
+ Build Date: Jul 30 2025
+ Today: 20250731T113321	User: current user
 ==========================================================================================
 Usage
 =====
@@ -5870,16 +6490,49 @@ v1.9.2  01-Dec-2023  Updated to newer opensea-libs to pull in low-level fixes.
                      response to SAT A1h CDB.
                      Fixed a bug in FreeBSD causing non-data ATA commands to report
                      all zeroes instead of expected output in RTFRs.
+v1.9.3  28-Aug-2024  Pull in security updates and low-level bug fixes from opensea-libs.
+                     CISS RAID device support for Linux (CCISS, HPSA, and SmartPQI drivers)
+v1.10.0  28-May-2025 Added support for low-level SCSI rescan in Linux when passing aggressive scan flag -S.
+                     Refactor reading SCSI capacity code which may reduce total commands issued.
+                     Refactored looking up supported SCSI commands with Report Supported operations codes and
+                     legacy CmdDT bit in Inquiry which reduces total commands issued.
+                     Source code level support for OpenBSD, NetBSD, and DragonflyBSD now available.
+                     More source code hardening implemented with new bounds checking functions from
+                     opensea-common library (behave similar to Annex K in C11).
+                     Fixed a bug in reading device information (-i) on USB devices causing the information to be
+                     incomplete.
+                     Fixed big endian system support for all devices, but especially for NVMe.
+                     Fixed looking up SD to SG device handles in Linux.
+                     Added new exit codes for Device Not Found when opening the handle and Device Busy when
+                     attempting to open a handle.
+                     Enhanced file security API to display recommended actions to modify directories to be 
+                     compatible with security requirements when reading or writing a file.
+                     Fixed a crash when reading/writing files located at / in unix-like systems.
+                     Fixed exit code when -d all or --modelMatch are used but all devices are skipped so that 
+                     the exit code is not set to 0 (success) when all the devices were skipped.
+                     Fixed parsing some CLI options to allow empty units like previous versions.
+                     Added exclusive file lock when opening the drive handle during fast format
+                     to prevent resets while the change is in progress (--setSectorSize option).
+v1.10.1  07-Jul-2025 Fixed a bug with scan not showing any output in specific circumstances where number of successfully
+                     enumerated devices is equivalent to the number of unsuccessfully enumerated devices.
+                     Added new exit code for when paths are detected as insecure to be resolved by the user before
+                     files will be accessed in these directories (see https://github.com/Seagate/openSeaChest/wiki/Secure-File-And-Path).
+                     Fixed a check for reading correct mode page which may cause changing some SAS features to fail.
+                     Fixed incorrect protocol specified in ATA download microcode passthrough command. This causes firmware updates
+                     to hang when the device does not support the download DMA command.
+                     Fixed NVMe firmware update in Windows 11 23H2 and 24H2.
+                     Disabled extra CSMI related device scan in Windows that can cause a hang on some chipsets.
+                     Added some more legacy USB devices to list of known devices to support these better when they are used.
 </PRE>
 <HR>
 <A NAME="file10">
 <H1>SeaChest_NVMe 10/28</H1>
 [<A HREF="#top">top</A>][<A HREF="#file9">prev</A>][<A HREF="#file11">next</A>]
 <PRE>
-SeaChest_NVMe                                              Revision: 04-Dec-2023
+SeaChest_NVMe                                              Revision: 31-Jul-2025
 ===============================================================================
  SeaChest_NVMe - Seagate drive utilities
- Copyright (c) 2014-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+ Copyright (c) 2014-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
  See Version History below.
 ===============================================================================
 Welcome to Seagate's SeaChest NVMe diagnostic software.
@@ -5947,10 +6600,10 @@ Examples - Windows
 
 ==========================================================================================
  SeaChest_NVMe - Seagate drive utilities - NVMe Enabled
- Copyright (c) 2014-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
- SeaChest_NVMe Version: 2.3.0-6_2_0 X86_64
- Build Date: Dec  1 2023
- Today: Mon Dec  4 10:44:18 2023	User: current user
+ Copyright (c) 2014-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+ SeaChest_NVMe Version: 3.0.2 X86_64
+ Build Date: Jul 30 2025
+ Today: 20250731T113321	User: current user
 ==========================================================================================
 Usage
 =====
@@ -5979,6 +6632,7 @@ Examples
 	Checking and changing power states:
 	SeaChest_NVMe -d /dev/sg&lt;#&gt; --checkPowerMode
 	SeaChest_NVMe -d /dev/sg&lt;#&gt; --transitionPowerState 1
+	SeaChest_NVMe -d /dev/sg&lt;#&gt; --showNVMPowerStates
 	Pulling the Telemetry log:
 	SeaChest_NVMe -d /dev/sg&lt;#&gt; --getTelemetry host
 	SeaChest_NVMe -d /dev/sg&lt;#&gt; --getTelemetry host, --telemetryDataArea 2 --logMode bin
@@ -5995,6 +6649,11 @@ Return codes
 	7 = Cannot Open File
 	8 = File Already Exists
 	9 = Need Elevated Privileges
+	10 = Not enough resources
+	11 = Error Writing File
+	12 = Device not found when opening handle.
+	13 = Device not opened. Handle is busy.
+	14 = Insecure Directory to read or write file
 	Anything else = unknown error
 
 
@@ -6071,10 +6730,14 @@ Utility Arguments
 			interfaceNVME = show devices on an NVMe interface
 			sd - show sd device handles
 			sgtosd - show the sd and sg device handle mapping
+			ignoreCSMI - do not scan for any CSMI devices
+			allowDuplicates - allow drives with both CSMI and PD handles
+			                  to show up multiple times in the list
 
 	-d, --device [deviceHandle | all]
 		Use this option with most commands to specify the device
 		handle on which to perform an operation. Example: /dev/sg&lt;#&gt;
+		CSMI device handles can be specified as &lt;error&lt;#&gt;&lt;#&gt;&lt;#&gt;&gt;
 		To run across all devices detected in the system, use the
 		&quot;all&quot; argument instead of a device handle.
 		Example: -d all
@@ -6136,8 +6799,8 @@ Utility Arguments
 		for the specific model drive. Improper use of this option may
 		harm a device and or its data. You may specify the path (without
 		spaces) if the firmware data file is in a different location.
-		This option will use segmented download by default. Use the
-		--downloadMode option to specify a different download mode.
+		This option will use auto mode by default to choose the best method
+		for updating the drive firmware. Use the --downloadMode option to		specify a different download mode.
 
 		WARNING: Firmware updates may affect all LUNs/namespaces
 		         for devices with multiple logical units or namespaces.
@@ -6232,6 +6895,9 @@ Utility Arguments
 		2 - get telemetry data additional to data area 2
 		3 - get telemetry data additional to data area 3 (default data area)
 
+	--listSupportedLogs
+		Displays a list of all supported logs by this device type.
+
 	--onlyFW [firmware revision]
 		Use this option to run on all drives matching the provided
 		firmware revision. This option will only do an exact match.
@@ -6271,6 +6937,8 @@ Utility Arguments
 	--pciStats   
 		Use this option to get the NVMe PCIe Statistics
 
+	--showNVMPowerStates	(NVMe Only)
+		Use this option to display a device's supported power states.
 	--showSupportedFormats
 		This option will show the supported formats of a device.
 		These can be used to change the sector size or 
@@ -6454,16 +7122,45 @@ v2.3.0  01-Dec-2023  Updated to newer opensea-libs to pull in low-level fixes.
                      response to SAT A1h CDB.
                      Fixed a bug in FreeBSD causing non-data ATA commands to report
                      all zeroes instead of expected output in RTFRs.
-</PRE>
+v2.4.0  28-Aug-2024  Pull in security updates and low-level bug fixes from opensea-libs.
+                     CISS RAID device support for Linux (CCISS, HPSA, and SmartPQI drivers)
+                     Added showNVMPowerStates and listSupportedLogs options.
+v3.0.0  28-May-2025  Added support for low-level SCSI rescan in Linux when passing aggressive scan flag -S.
+                     Refactor reading SCSI capacity code which may reduce total commands issued.
+                     Refactored looking up supported SCSI commands with Report Supported operations codes and
+                     legacy CmdDT bit in Inquiry which reduces total commands issued.
+                     Source code level support for OpenBSD, NetBSD, and DragonflyBSD now available.
+                     More source code hardening implemented with new bounds checking functions from
+                     opensea-common library (behave similar to Annex K in C11).
+                     Fixed a bug in reading device information (-i) on USB devices causing the information to be
+                     incomplete.
+                     Fixed big endian system support for all devices, but especially for NVMe.
+                     Fixed looking up SD to SG device handles in Linux.
+                     Added new exit codes for Device Not Found when opening the handle and Device Busy when
+                     attempting to open a handle.
+                     Enhanced file security API to display recommended actions to modify directories to be 
+                     compatible with security requirements when reading or writing a file.
+                     Fixed a crash when reading/writing files located at / in unix-like systems.
+                     Fixed exit code when -d all or --modelMatch are used but all devices are skipped so that 
+                     the exit code is not set to 0 (success) when all the devices were skipped.
+                     Fixed parsing some CLI options to allow empty units like previous versions.
+                     Changed pulling telemetry log to save to a file and allow up to data area 4.
+v3.0.2  07-Jul-2025  Fixed a bug with scan not showing any output in specific circumstances where number of successfully
+                     enumerated devices is equivalent to the number of unsuccessfully enumerated devices.
+                     Added new exit code for when paths are detected as insecure to be resolved by the user before
+                     files will be accessed in these directories (see https://github.com/Seagate/openSeaChest/wiki/Secure-File-And-Path).
+                     Fixed NVMe firmware update in Windows 11 23H2 and 24H2.
+                     Disabled extra CSMI related device scan in Windows that can cause a hang on some chipsets.
+                     Added some more legacy USB devices to list of known devices to support these better when they are used.</PRE>
 <HR>
 <A NAME="file11">
 <H1>SeaChest_PowerControl 11/28</H1>
 [<A HREF="#top">top</A>][<A HREF="#file10">prev</A>][<A HREF="#file12">next</A>]
 <PRE>
-SeaChest_PowerControl                                      Revision: 04-Dec-2023
+SeaChest_PowerControl                                      Revision: 31-Jul-2025
 ===============================================================================
  SeaChest_PowerControl - Seagate drive utilities
- Copyright (c) 2014-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+ Copyright (c) 2014-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
  See Version History below.
 ===============================================================================
 Welcome to Seagate's SeaChest_PowerControl diagnostic software.
@@ -6559,10 +7256,10 @@ Examples - Windows
 
 ==========================================================================================
  SeaChest_PowerControl - Seagate drive utilities - NVMe Enabled
- Copyright (c) 2014-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
- SeaChest_PowerControl Version: 3.4.0-6_2_0 X86_64
- Build Date: Dec  1 2023
- Today: Mon Dec  4 10:44:18 2023	User: current user
+ Copyright (c) 2014-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+ SeaChest_PowerControl Version: 3.7.1 X86_64
+ Build Date: Jul 30 2025
+ Today: 20250731T113321	User: current user
 ==========================================================================================
 Usage
 =====
@@ -6607,11 +7304,25 @@ Return codes
 	7 = Cannot Open File
 	8 = File Already Exists
 	9 = Need Elevated Privileges
+	10 = Not enough resources
+	11 = Error Writing File
+	12 = Device not found when opening handle.
+	13 = Device not opened. Handle is busy.
+	14 = Insecure Directory to read or write file
 	Anything else = unknown error
 
 
 Utility Options
 ===============
+	--csmiIgnorePort (Obsolete)
+		This option is obsolete and will be removed in future versions.
+
+	--csmiUsePort (Obsolete)
+		This option is obsolete and will be removed in future versions.
+
+	--csmiVerbose (Obsolete)
+		This option is obsolete and will be removed in future versions.
+
 	--echoCommandLine
 		Echo the command line entered into the utility on the screen.
 
@@ -6699,6 +7410,7 @@ Utility Arguments
 	-d, --device [deviceHandle | all]
 		Use this option with most commands to specify the device
 		handle on which to perform an operation. Example: /dev/sg&lt;#&gt;
+		CSMI device handles can be specified as &lt;error&lt;#&gt;&lt;#&gt;&lt;#&gt;&gt;
 		To run across all devices detected in the system, use the
 		&quot;all&quot; argument instead of a device handle.
 		Example: -d all
@@ -6721,6 +7433,9 @@ Utility Arguments
 			interfaceNVME = show devices on an NVMe interface
 			sd - show sd device handles
 			sgtosd - show the sd and sg device handle mapping
+			ignoreCSMI - do not scan for any CSMI devices
+			allowDuplicates - allow drives with both CSMI and PD handles
+			                  to show up multiple times in the list
 
 	-i, --deviceInfo
 		Show information and features for the storage device
@@ -6786,6 +7501,9 @@ Utility Arguments
 		                 EPC spec timers are set in 100 millisecond increments.
 		                 Timers will be truncated to fit 100 millisecond increments.
 
+		When using this option, the setting is non-volatile.
+		Use this with the --volatile flag to make the
+		setting volatile.
 		WARNING: EPC Settings may affect all LUNs/namespaces for devices
 		         with multiple logical units or namespaces.
 
@@ -6800,6 +7518,9 @@ Utility Arguments
 		                 EPC spec timers are set in 100 millisecond increments.
 		                 Timers will be truncated to fit 100 millisecond increments.
 
+		When using this option, the setting is non-volatile.
+		Use this with the --volatile flag to make the
+		setting volatile.
 		WARNING: EPC Settings may affect all LUNs/namespaces for devices
 		         with multiple logical units or namespaces.
 
@@ -6814,6 +7535,9 @@ Utility Arguments
 		                 EPC spec timers are set in 100 millisecond increments.
 		                 Timers will be truncated to fit 100 millisecond increments.
 
+		When using this option, the setting is non-volatile.
+		Use this with the --volatile flag to make the
+		setting volatile.
 		WARNING: EPC Settings may affect all LUNs/namespaces for devices
 		         with multiple logical units or namespaces.
 
@@ -6891,6 +7615,9 @@ Utility Arguments
 		                 Spec timers are set in 100 millisecond increments.
 		                 Timers will be truncated to fit 100 millisecond increments.
 
+		When using this option, the setting is non-volatile.
+		Use this with the --volatile flag to make the
+		setting volatile.
 		ATA drives can only change the standby timer, not disable it.
 		On ATA drives, the standby timer set by this command is volatile
 		and drive defaults are restored on next power cycle.
@@ -6909,6 +7636,9 @@ Utility Arguments
 		                 EPC spec timers are set in 100 millisecond increments.
 		                 Timers will be truncated to fit 100 millisecond increments.
 
+		When using this option, the setting is non-volatile.
+		Use this with the --volatile flag to make the
+		setting volatile.
 		WARNING: EPC Settings may affect all LUNs/namespaces for devices
 		         with multiple logical units or namespaces.
 
@@ -6923,6 +7653,9 @@ Utility Arguments
 		                 EPC spec timers are set in 100 millisecond increments.
 		                 Timers will be truncated to fit 100 millisecond increments.
 
+		When using this option, the setting is non-volatile.
+		Use this with the --volatile flag to make the
+		setting volatile.
 		WARNING: EPC Settings may affect all LUNs/namespaces for devices
 		         with multiple logical units or namespaces.
 
@@ -6973,6 +7706,25 @@ Utility Arguments
 		handle this before enabling it, otherwise the drive link may
 		go down and the device will not be able to communicate.
 
+	--puisFeature [ info | spinup | enable | disable ]  (SATA Only)
+		Use this option to enable or disable the power up in standby
+		(PUIS) feature on SATA drives. 
+		Arguments:
+		    info    - display information about the PUIS support on the device
+		    spinup  - issue the PUIS spinup set features command to spin up
+		              the device to active/idle state.
+		    enable  - enable the PUIS feature using setfeatures command
+		    disable - disable the PUIS feature using setfeatures command
+		Note: If this is configured on the drive with a jumper, this
+		      command will fail.
+		Note2: Not all products support this feature.
+		WARNING: Before enabling this feature on any SAS/SATA HBA,
+		         check the HBA documentation to see if this feature
+		         is supported by the HBA. Enabling this on an HBA that
+		         does not support this feature will cause the drive to
+		         stop showing up to the host OS or even in the HBA's
+		         firmware/BIOS/UEFI configuration.
+
 	--setAPMLevel [1 - 254]   (SATA Only)
 		Use this option to set the APM level of a device.
 		Valid values are between 1 and 254.
@@ -7004,6 +7756,9 @@ Utility Arguments
 		                 Spec timers are set in 100 millisecond increments.
 		                 Timers will be truncated to fit 100 millisecond increments.
 
+		When using this option, the setting is non-volatile.
+		Use this with the --volatile flag to make the
+		setting volatile.
 		This is only available on SAS/SCSI drives as ATA drives did not
 		have a separate configurable idle timer.
 
@@ -7308,16 +8063,899 @@ v3.4.0  01-Dec-2023  Updated to newer opensea-libs to pull in low-level fixes.
                      Workaround for some SAS drives on some HBAs reporting incorrect
                      response to SAT A1h CDB.
                      Fixed a bug in FreeBSD causing non-data ATA commands to report
-                     all zeroes instead of expected output in RTFRs.</PRE>
+                     all zeroes instead of expected output in RTFRs.
+v3.6.0  28-Aug-2024  Pull in security updates and low-level bug fixes from opensea-libs.
+                     CISS RAID device support for Linux (CCISS, HPSA, and SmartPQI drivers)
+                     Added option to see PUIS info and change PUIS settings.
+v3.7.0  28-May-2025  Added support for low-level SCSI rescan in Linux when passing aggressive scan flag -S.
+                     Refactor reading SCSI capacity code which may reduce total commands issued.
+                     Refactored looking up supported SCSI commands with Report Supported operations codes and
+                     legacy CmdDT bit in Inquiry which reduces total commands issued.
+                     Source code level support for OpenBSD, NetBSD, and DragonflyBSD now available.
+                     More source code hardening implemented with new bounds checking functions from
+                     opensea-common library (behave similar to Annex K in C11).
+                     Fixed a bug in reading device information (-i) on USB devices causing the information to be
+                     incomplete.
+                     Fixed big endian system support for all devices, but especially for NVMe.
+                     Fixed looking up SD to SG device handles in Linux.
+                     Added new exit codes for Device Not Found when opening the handle and Device Busy when
+                     attempting to open a handle.
+                     Enhanced file security API to display recommended actions to modify directories to be 
+                     compatible with security requirements when reading or writing a file.
+                     Fixed a crash when reading/writing files located at / in unix-like systems.
+                     Fixed exit code when -d all or --modelMatch are used but all devices are skipped so that 
+                     the exit code is not set to 0 (success) when all the devices were skipped.
+                     Fixed parsing some CLI options to allow empty units like previous versions.
+                     Allow setting EPC timers as volatile when the --volatile flag is also passed on the command line.                     
+v3.7.1  07-Jul-2025  Fixed a bug with scan not showing any output in specific circumstances where number of successfully
+                     enumerated devices is equivalent to the number of unsuccessfully enumerated devices.
+                     Fixed a check for reading correct mode page which may cause changing some SAS features to fail.
+                     Disabled extra CSMI related device scan in Windows that can cause a hang on some chipsets.
+                     Added some more legacy USB devices to list of known devices to support these better when they are used.</PRE>
 <HR>
 <A NAME="file12">
-<H1>SeaChest_Security 12/28</H1>
+<H1>SeaChest_SMART 12/28</H1>
 [<A HREF="#top">top</A>][<A HREF="#file11">prev</A>][<A HREF="#file13">next</A>]
 <PRE>
-SeaChest_Security                                          Revision: 04-Dec-2023
+SeaChest_SMART                                             Revision: 31-Jul-2025
+===============================================================================
+ SeaChest_SMART - Seagate drive utilities
+ Copyright (c) 2014-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+ See Version History below.
+===============================================================================
+Welcome to Seagate's SeaChest_SMART diagnostic software.
+
+Disk drives are constantly monitoring and analyzing their own performance,
+integrity and environment.  The current state of this technology is the result
+of more than 20 years of innovative Seagate engineering focused on self-testing.
+
+With the backing of personal computer manufacturers, the disk drive industry
+adopted an analysis system in the 1990's called Self Monitoring Analysis and
+Reporting Technology, or SMART. The idea then and today is to predict a failure
+before it happens. Various attributes are being monitored and measured against
+certain threshold limits. If any one attribute exceeds a threshold then a
+general SATA SMART Status test will change from Pass to Fail.
+
+Many computers automatically check SMART Status when they start up which is
+when most people become aware of the issue. If still under warranty, then SMART
+Status FAIL is a valid condition for warranty replacement.
+
+You can use SeaChest_SMART software with --smartCheck to test the SATA SMART
+status of the drive.
+
+When a SMART Status test has a FAIL it is extremely important that you back up
+all of your important data. SMART Status FAIL is a near-term prediction of
+drive failure and the drive usually functions like normal. Unfortunately, there
+is no way to specifically predict when the failure will occur, so your best
+response is to back up your data as soon as possible.
+
+SeaChest does not interpret attributes or thresholds.  As a practical matter,
+the technology supporting SMART is constantly being improved.  Each new design
+incorporates improvements that increase the accuracy of the SMART prediction.
+As a matter of policy, Seagate does not publish attributes and thresholds.
+Seagate Support does not help to analyze SMART attributes.
+
+In addition, the SMART command set includes short and long Drive Self Test
+(Offline Immediate).
+
+Seagate drives employ a background media scan (BGMS) during idle activity
+times.  The BGMS is a sequential read of sectors from the beginning to the end
+the of the drive.  If BGMS is interrupted it later restarts where it left off.
+BGMS has no effect on performance.  BGMS collects information about
+&quot;suspicious&quot; sectors.  When the Short DST is run the first step is a review of
+these &quot;suspicious&quot; sectors.  It is possible for Short DST to fail quickly if
+one of these BGMS sectors is unreadable.
+
+It may be possible to repair a problem when Short DST fails due to failure to
+read a particular sector (LBA).  You might consider the --seagateClean or
+-dstAndClean command line options.  See the sections below &quot;Sector Repair
+Commands&quot; and &quot;Bad LBA (Sector) Found&quot; for more information on this subject.
+
+If you wish to test the drive for physical integrity, please use Short Drive
+Self Test (--shortDST).  Because the BGMS has continuously collected
+information on the entire drive, Short DST is effectively testing the entire
+drive.
+
+This User Guide file contains important information about SeaChest_SMART.
+Please read this entire file before using this software.
+
+SeaChest is a comprehensive, easy-to-use command line diagnostic tool that
+helps you quickly determine the health and status of your Seagate storage
+product. It includes several tests that will examine the physical media on your
+Seagate, Samsung or Maxtor disk drive.
+
+Tests and commands which are completely data safe will run on any disk drive.
+Tests and commands which change the drive (like firmware download or data
+erasure or setting the maximum capacity, etc) are limited to Seagate disk
+drives (this includes Seagate, Maxtor, Samsung and LaCie). Be careful using
+SeaChest because some of the features, like the data erasure options, will
+cause data loss. Seagate is not responsible for lost user data.
+
+Note: One gigabyte, or GB, equals one billion bytes when referring to hard
+drive capacity. This software may use information provided by the operating
+system to display capacity and volume size. The Windows file system uses a
+binary calculation for gibibyte or GiB (2^30) which causes the abbreviated size
+to appear smaller. The total number of bytes on a disk drive divided by the
+decimal calculation for gigabyte or GB (10^9) shows the expected abbreviated
+size. See this FAQ for more information
+&lt;http://knowledge.seagate.com/articles/en_US/FAQ/172191en?language=en_US&gt;.
+
+If this is your drive, you should always keep a current backup of your
+important data.
+
+Usage - Linux (run with sudo)
+=============================
+        SeaChest_SMART [-d &lt;sg_device&gt;] {arguments} {options}
+
+Examples - Linux
+================
+        sudo SeaChest_SMART --scan
+        sudo SeaChest_SMART -d /dev/sg2 -i
+        sudo SeaChest_SMART -d /dev/sg1 --shortDST --poll
+
+Usage - Windows (run as administrator)
+======================================
+        SeaChest_SMART [-d &lt;PD_device&gt;] {arguments} {options}
+
+Examples - Windows
+==================
+        SeaChest_SMART --scan
+        SeaChest_SMART -d PD0 -i
+        SeaChest_SMART -d PD1 --shortDST --poll
+
+==========================================================================================
+ SeaChest_SMART - Seagate drive utilities - NVMe Enabled
+ Copyright (c) 2014-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+ SeaChest_SMART Version: 2.6.1 X86_64
+ Build Date: Jul 30 2025
+ Today: 20250731T113321	User: current user
+==========================================================================================
+Usage
+=====
+	 SeaChest_SMART [-d &lt;sg_device&gt;] {arguments} {options}
+
+Examples
+========
+	SeaChest_SMART --scan
+	SeaChest_SMART -d /dev/sg&lt;#&gt; -i
+	SeaChest_SMART -d /dev/sg&lt;#&gt; --SATInfo
+	SeaChest_SMART -d /dev/sg&lt;#&gt; --llInfo
+	SeaChest_SMART -d /dev/sg&lt;#&gt; --smartCheck
+	SeaChest_SMART -d /dev/sg&lt;#&gt; --shortDST --captive
+	SeaChest_SMART -d /dev/sg&lt;#&gt; --conveyanceDST --poll
+	SeaChest_SMART -d /dev/sg&lt;#&gt; --longDST --poll
+	SeaChest_SMART -d /dev/sg&lt;#&gt; --idd short
+	SeaChest_SMART -d /dev/sg&lt;#&gt; --idd long --captive
+	SeaChest_SMART -d /dev/sg&lt;#&gt; --abortDST
+	SeaChest_SMART -d /dev/sg&lt;#&gt; --showDSTLog
+	SeaChest_SMART -d /dev/sg&lt;#&gt; --smartAttributes hybrid
+	SeaChest_SMART -d /dev/sg&lt;#&gt; --showNvmeHealth
+	SeaChest_SMART -d /dev/sg&lt;#&gt; --deviceStatistics
+	SeaChest_SMART -d /dev/sg&lt;#&gt; --smartFeature enable
+	SeaChest_SMART -d /dev/sg&lt;#&gt; --setMRIE 6
+	SeaChest_SMART -d /dev/sg&lt;#&gt; --smartInfo
+	SeaChest_SMART -d /dev/sg&lt;#&gt; --smartAttributeAutosave disable
+	SeaChest_SMART -d /dev/sg&lt;#&gt; --smartAutoOffline enable
+	SeaChest_SMART -d /dev/sg&lt;#&gt; --showSMARTErrorLog comprehensive
+	SeaChest_SMART -d /dev/sg&lt;#&gt; --showSMARTErrorLog summary --smartErrorLogFormat raw
+	SeaChest_SMART -d /dev/sg&lt;#&gt; --showSCSIDefects g --defectFormat bfi
+	SeaChest_SMART -d /dev/sg&lt;#&gt; --dstAndClean --errorLimit 40
+
+Return codes
+============
+	Generic/Common exit codes
+	0 = No Error Found
+	1 = Error in command line options
+	2 = Invalid Device Handle or Missing Device Handle
+	3 = Operation Failure
+	4 = Operation not supported
+	5 = Operation Aborted
+	6 = File Path Not Found
+	7 = Cannot Open File
+	8 = File Already Exists
+	9 = Need Elevated Privileges
+	10 = Not enough resources
+	11 = Error Writing File
+	12 = Device not found when opening handle.
+	13 = Device not opened. Handle is busy.
+	14 = Insecure Directory to read or write file
+	Anything else = unknown error
+
+Utility Options
+===============
+	--csmiIgnorePort (Obsolete)
+		This option is obsolete and will be removed in future versions.
+
+	--csmiUsePort (Obsolete)
+		This option is obsolete and will be removed in future versions.
+
+	--csmiVerbose (Obsolete)
+		This option is obsolete and will be removed in future versions.
+
+	--echoCommandLine
+		Echo the command line entered into the utility on the screen.
+
+	--enableLegacyUSBPassthrough
+		Only use this option on old USB or IEEE1394 (Firewire)
+		products that do not otherwise work with the tool.
+		This option will enable a trial and error method that
+		attempts sending various ATA Identify commands through
+		vendor specific means. Because of this, certain products
+		that may respond in unintended ways since they may interpret
+		these commands differently than the bridge chip the command
+		was designed for.
+
+	--forceATA
+		Using this option will force the current drive to
+		be treated as a ATA drive. Only ATA commands will
+		be used to talk to the drive.
+
+	--forceATADMA	(SATA Only)
+		Using this option will force the tool to issue SAT
+		commands to ATA device using the protocol set to DMA
+		whenever possible (on DMA commands).
+		This option can be combined with --forceATA
+
+	--forceATAPIO	(SATA Only)
+		Using this option will force the tool to issue PIO
+		commands to ATA device when possible. This option can
+		be combined with --forceATA
+
+	--forceATAUDMA	(SATA Only)
+		Using this option will force the tool to issue SAT
+		commands to ATA device using the protocol set to UDMA
+		whenever possible (on DMA commands).
+		This option can be combined with --forceATA
+
+	--forceSCSI
+		Using this option will force the current drive to
+		be treated as a SCSI drive. Only SCSI commands will
+		be used to talk to the drive.
+
+	-h, --help
+		Show utility options and example usage (this output you see now)
+		Please report bugs/suggestions to seaboard@seagate.com.
+		Include the output of --version information in the email.
+
+	--license
+		Display the Seagate End User License Agreement (EULA).
+
+	--modelMatch [model Number]
+		Use this option to run on all drives matching the provided
+		model number. This option will provide a closest match although
+		an exact match is preferred. Ex: ST500 will match ST500LM0001
+
+	--onlyFW [firmware revision]
+		Use this option to run on all drives matching the provided
+		firmware revision. This option will only do an exact match.
+
+	--noTimeLimit
+		Use with utility command arguments which have a built in timeout
+		value. For example, --shortDST has a 10 minute default
+		timeout. In some cases a good drive may need more time to
+		complete the test due to other legitimate system activity.
+
+	--noBanner
+		Use this option to suppress the text banner that displays each time
+		openSeaChest is run.
+
+	--onlySeagate
+		Use this option to match only Seagate drives for the options
+		provided
+
+	-q, --quiet
+		Run SeaChest_SMART in quiet mode. This is the same as
+		-v 0 or --verbose 0
+
+	-v [0-4], --verbose [0 | 1 | 2 | 3 | 4]
+		Show verbose information. Verbosity levels are:
+		0 - quiet
+		1 - default
+		2 - command descriptions
+		3 - command descriptions and values
+		4 - command descriptions, values, and data buffers
+		Example: -v 3 or --verbose 3
+
+	-V, --version
+		Show SeaChest_SMART version and copyright information &amp; exit
+
+
+Utility Arguments
+=================
+	-d, --device [deviceHandle | all]
+		Use this option with most commands to specify the device
+		handle on which to perform an operation. Example: /dev/sg&lt;#&gt;
+		CSMI device handles can be specified as &lt;error&lt;#&gt;&lt;#&gt;&lt;#&gt;&gt;
+		To run across all devices detected in the system, use the
+		&quot;all&quot; argument instead of a device handle.
+		Example: -d all
+		NOTE: The &quot;all&quot; argument is handled by running the
+		      specified options on each drive detected in the
+		      OS sequentially. For parallel operations, please
+		      use a script opening a separate instance for each
+		      device handle.
+
+	-F, --scanFlags [option list]
+		Use this option to control the output from scan with the
+		options listed below. Multiple options can be combined.
+			ata - show only ATA (SATA) devices
+			usb - show only USB devices
+			scsi - show only SCSI (SAS) devices
+			nvme - show only NVMe devices
+			interfaceATA - show devices on an ATA interface
+			interfaceUSB - show devices on a USB interface
+			interfaceSCSI - show devices on a SCSI or SAS interface
+			interfaceNVME = show devices on an NVMe interface
+			sd - show sd device handles
+			sgtosd - show the sd and sg device handle mapping
+			ignoreCSMI - do not scan for any CSMI devices
+			allowDuplicates - allow drives with both CSMI and PD handles
+			                  to show up multiple times in the list
+
+	-i, --deviceInfo
+		Show information and features for the storage device
+
+	--llInfo
+		Dump low-level information about the device to assist with debugging.
+
+	--poll
+		Use this option to cause another operation to poll for progress
+		until it has completed.  This argument does not return to the
+		command prompt and prints ongoing completion percentages (%)
+		 the final test result.  Full drive procedures will take a
+		very long time.  Used with --sanitize, or --writeSame (SATA).
+
+	--progress [dst, idd]
+		Get the progress for a test that was started quietly without
+		the polling option (default). You must specify a test you wish to
+		get progress from. Ex: &quot;--progress dst&quot; or &quot;--progress sanitize&quot;
+		The progress counts up from 0% to 100%.
+
+	-s, --scan
+		Scan the system and list all storage devices with logical
+		/dev/sg&lt;#&gt; assignments. Shows model, serial and firmware
+		numbers.  If your device is not listed on a scan  immediately
+		after booting, then wait 10 seconds and run it again.
+
+	-S, --Scan
+		This option is the same as --scan or -s,
+		however it will also perform a low level rescan to pick up
+		other devices. This low level rescan may wake devices from low
+		power states and may cause the OS to re-enumerate them.
+		Use this option when a device is plugged in and not discovered in
+		a normal scan.
+		NOTE: A low-level rescan may not be available on all interfaces or
+		all OSs. The low-level rescan is not guaranteed to find additional
+		devices in the system when the device is unable to come to a ready state.
+
+	--SATInfo
+		Displays SATA device information on any interface
+		using both SCSI Inquiry / VPD / Log reported data
+		(translated according to SAT) and the ATA Identify / Log
+		reported data.
+
+	--testUnitReady
+		Issues a SCSI Test Unit Ready command and displays the
+		status. If the drive is not ready, the sense key, asc,
+		ascq, and fru will be displayed and a human readable
+		translation from the SPC spec will be displayed if one
+		is available.
+
+	--fastDiscovery
+		Use this option  to issue a fast scan on the specified drive. 
+
+	--abortDST
+		Abort a diagnostic Drive Self Test that is in progress.
+
+	--abortIDD (Seagate Only)
+		Abort a Seagate In Drive Diagnostic (IDD) that is in progress.
+		This may return failure if IDD is not running or has already
+		completed running.
+
+	--captive or --foreground
+		Use this option to run a DST operation in captive/foreground
+		mode. This mode may allow a device to test more of itself and
+		may be slightly faster than offline/background mode since it does
+		not need to service additional command during the test.
+		When using this mode, the utility must wait the entire time for
+		the DST to complete and progress cannot be indicated during this time.
+
+	--conveyanceDST
+		Execute a conveyance diagnostic drive self test. A conveyance
+		test can be used to check if a drive has incurred handling damage.
+		This test can take up to 2 minutes to complete. Use the --poll
+		argument to make this operation poll for progress until complete.
+		Use the --progress dst command to check on the completion
+		percentage (%) and test result.
+		NOTE: conveyance DST may take longer if there is other disk usage
+		while the DST is running. If the DST takes longer than 10 minutes
+		it will automatically be aborted while polling for progress.
+		To override this behavior, use the --noTimeLimit option.
+
+	--deviceStatistics
+		Use this option to display the device statistics reported
+		by the device. On SATA, this uses the Device Statistics
+		log, and the notifications log (if DSN feature is supported)
+		to display these statistics. On SAS, various log pages are
+		read to collect a bunch of reported parameter information.
+
+	--errorLimit [limit in number of LBAs]
+		Use this option to specify a different error
+		limit for a user generic or long generic read
+		test or DST and Clean. This must be a number of
+		 logical LBAs to have errors. If a drive has multiple
+		 logical sectors per physical sector, this number will
+		be adjusted for you to reflect the drive
+		architecture.
+
+	--idd [short | long]		(Seagate Only)
+		Start an In Drive Diagnostic (IDD) test on a Seagate
+		drive. Not all tests are supported by all products. If a
+		selected test is not supported, the utility will return
+		a error code meaning &quot;not supported&quot;.
+		Short:  Reset and Recalibration test. Be careful running this
+		        test on the boot device.
+		Long:   Reset and Recalibration test and test G list and 
+		        P list
+		Note: the --captive option can be added to run the long test in
+		      foreground/captive mode. This allows for G-list healing
+		      and some additional checks to be performed. This may not
+		      work on some products.
+		Note: Progress cannot be checked for the first 2 minutes of IDD.
+		      The drive is busy with the test and is not able to respond.
+		      Attempting to retrieve progress during this time will hang and
+		      may cause the IDD to abort due to the host issuing resets to
+		      recover access to the drive.
+
+	--longDST
+		Execute a long diagnostic drive self test. This test takes
+		hours to complete.  A 2TB drive may take six (6) hours to
+		complete. Use with the --poll argument to let SeaChest check
+		for progress and print it to the screen until complete.
+		Use the --progress dst command to check on the completion
+		percentage(%) and test result.
+		This test stops on the first error. Use --abortDST
+		to manually stop the test. SAS drives give status in 1%
+		increments. SATA drives give status in 10% increments which
+		means more than an hour may elapse between updates on a SATA
+		drive &gt; 2TB.
+
+		If the --longDST poll option is running and you want to abort
+		the test then you will need to open a second terminal window
+		and run the --abortDST command. Otherwise, it is safe to
+		restart the system while long DST is running which also ends the
+		test.
+		NOTE: Long DST may take longer if there is other disk usage
+		while the DST is running. If the DST takes longer than 5x the
+		drive reported time, it will automatically be aborted while
+		polling for progress.
+		To override this behavior, use the--noTimeLimit option.
+
+	--shortDST
+		Execute a short diagnostic drive self test. This test can take
+		up to 2 minutes to complete. Use the --poll argument to make
+		this operation poll for progress until complete. Use the
+		--progress dst command to check on the completion percentage
+		(%) and test result.
+		NOTE: Short DST may take longer if there is other disk usage
+		while the DST is running. If the DST takes longer than 10 minutes
+		it will automatically be aborted while polling for progress.
+		To override this behavior, use the --noTimeLimit option.
+
+	--showDSTLog
+		This option will show the entries in the DST log.
+		Up to 21 entries may be shown (pending drive support)
+		and will be shown with the most recent entry first.
+
+	--showFARM
+		Use this option to show the data in the FARM log.
+		FARM is the Field Accessible Reliability Metrics that
+		can be reported from a Seagate hard drive.
+		Farm data has a few sections available:
+			General Drive Info
+			Workload Statistics
+			Error Statistics
+			Environment Statistics
+			Reliability Statistics
+		Newer Seagate HDDs may be able to report more information than
+		older models. Data that can be reported may vary depending on the
+		capabilities of a given product.
+
+	--smartCheck
+		Perform a SMART check on a device to see if any internal
+		thresholds have been tripped or if the drive is still operating
+		within specification.
+
+	--smartFeature [ enable | disable ]  (SATA Only)
+		Use this option to enable or disable the SMART
+		feature on a SATA drive.
+		Note: This command is declared obsolete in ACS4.
+
+
+	SATA Only:
+	=========
+	--smartAttributes [raw | hybrid | analyzed]	(SATA Only)
+		The drive will display its list of supported SMART attributes.
+		Some attributes names are commonly standard and most others are
+		vendor unique. In either case, the attribute thresholds are
+		always vendor unique. Most attributes are informational and not
+		used to determine a warranty return. Use the --smartCheck
+		command to determine if one of the warranty attributes has been
+		tripped. Seagate Support does not help to analyze SMART
+		attributes.
+		Output modes:
+		  raw - All hex output for those that need every single bit.
+		  hybrid - classic table view with some interpretation of some
+		           fields. Partial raw interpretation, but not all drive
+		           and firmware combinations are supported.
+		  analyzed - a full breakdown of all parts of each individual
+		             attribute's data. Full raw data interpretation only
+		             available on select devices.
+		NOTE: Migration to device statistics is recommended.
+
+	--smartAttributeAutosave [ enable | disable ]  (SATA Only)
+		Use this option to enable or disable SMART
+		attribute auto-save on an ATA drive.
+		Note: This command is declared obsolete in ACS4.
+
+	--smartAutoOffline [ enable | disable ]  (SATA Only)
+		Use this option to enable or disable SMART
+		auto-off-line feature on an ATA drive.
+
+	--shortDST	(SATA Only)
+		Execute the SMART off-line data collection routine on an ATA drive.
+		This will run for the amount of time the device specifies that this
+		operation will take to complete. Progress updates are not available
+		while this is running. Some drives allow other commands to be processed
+		and some require no interruption while this routine completes.
+		This routine does vendor unique activities to update the SMART data and
+		SMART attributes the device reports.
+		If the SMART auto-off-line feature is supported and enabled, then this
+		routine is already running automatically in the background periodically.
+
+	--showSMARTErrorLog [ summary | comprehensive ]	(SATA Only)
+		This option will display the ATA SMART Error log on the screen.
+		Use &quot;summary&quot; to view the summary SMART error log (last 5 entries)
+		Use &quot;comprehensive&quot; to view all the entires the drive has available.
+		Specifying &quot;comprehensive&quot; will automatically pull the ext error log
+		on drives that support 48bit LBAs.
+		Note: The summary error log will truncate 48bit commands, so some information
+		      will be missing to describe the operation of certain commands.
+
+	--smartErrorLogFormat [ raw | detailed ]	(SATA Only)
+		Use this option to change the format of the output from the --showSMARTErrorLog
+		option. The default mode is &quot;detailed&quot;
+
+	--smartInfo (SATA Only)
+		This option will show SMART information reported
+		by a given device.
+
+
+	SAS Only:
+	=========
+	--defectFormat [ # | shortBlock | longBlock | xbfi | xchs | bfi | chs ]	(SAS Only)
+		This option set the format of the defects to output.
+		Not all drives will support all defect modes!
+		SSDs will only support block modes!
+		Arguments: (name | #)
+		 shortBlock | 0 - show the defects in short block address mode (drives &lt; 32bit LBA)
+		 xbfi       | 1 - show the defects in extended bytes from index mode
+		 xchs       | 2 - show the defects in extended physical cylinder-head-sector mode
+		 longBlock  | 3 - show the defects in long block address mode (drives &gt; 32bit LBA)
+		 bfi        | 4 - show the defects in bytes from index mode
+		 chs        | 5 - show the defects in physical cylinder-head-sector mode
+
+	--setMRIE [ default | 0 - 6 ]  (SAS Only)
+		Use this option to change the MRIE mode on the informational
+		exceptions mode page.
+		    default - set to the drive default
+		    0 - disable exception reporting
+		    1 - Asynchronous reporting (obsolete)
+		    2 - Establish unit attention condition
+		    3 - Conditionally generate recovered error
+		    4 - Unconditionally generate recovered error
+		    5 - Generate no sense
+		    6 - Report on request
+
+		WARNING: Changing MRIE may affect all LUNs/namespaces for devices
+		         with multiple logical units or namespaces.
+
+	--showSCSIDefects [ p | g | pg ]	(SAS Only)
+		This option will display the SCSI defects on the screen.
+		The arguments to this will tell whether to get the grown, 
+		primary, or primary and grown defects from the drive.
+		Use the --defectFormat option to specify the mode to display the defects.
+		If no mode is specified, physical cylinder-head-sector mode is assumed
+		Arguments:
+		  p - use this option to pull and display the primary (factory) defects
+		  g - use this option to pull and display the grown (reallocated) defects
+		 The above options can be combined to pull and display both defect lists.
+
+
+	NVMe Only:
+	=========
+	--showNvmeHealth	(NVMe Only)
+		The drive will display the NVMe Health log (also called
+		SMART log). All standardized fields will be printed to the
+		screen for the device.
+
+
+Data Destructive Commands
+=========================
+	--dstAndClean
+		Runs DST, then checks for an error and repairs the
+		error if possible. This continues until all errors
+		reported by DST are fixed, or when the error limit is
+		reached. The default limit is 50 errors.
+
+	--seagateClean	(Seagate Only)
+		Checks logs for errors and repairs them if possible.
+		After repairing all errors, each error is read around
+		to check for other errors to repair. Finally, a DST &amp; Clean
+		operation is run to verify the drive is good and no more
+		errors exist. Test will stop when the error limit is reached.
+		The default limit is 50 errors.
+
+
+===============
+Version History - SeaChest_SMART
+===============
+SeaChest_SMART is branched off from SeaChest Basics v1.0.4.
+
+v0.0.1  14-Apr-2015  Initial SMART release.  Added --poll.
+v0.0.2  12-Aug-2015  Added --testUnitReady. Improved device discovery.
+                     Corrections to verbose output.
+v0.0.2  16-Oct-2015  1_7_0 libraries.  Added enhanced version information.
+                     Added -sat12byte to increase compatibility.  Added
+                     --SATInfo to compare ATA vs SCSI identification
+                     differences.
+v1.0.0  02-May-2016  1_9_1 libraries.  Added new verbosity level. Added
+                     --onlySeagate restriction.  Added --modelMatch and
+                     --onlyFW filters. --smartAttributes update, added
+                     --errorLimit, --dstAndClean
+v1.0.2  19-May-2016  1_9_2 libraries fixed scan information from ATAPI devices.
+                     Fixed a bug where we could accidentally clear some stored
+                     identify data from the device structure. Fixed continuing
+                     on when there was a permission denied error opening a
+                     drive. Fixed missing Long DST confirmation.
+v1.0.3  15-Jun-2016  1_9_3 libraries fixed issues with ATA secure erase
+                     commands. Fixed bugs with --modelMatch and --onlyFW
+                     filters.
+v1.2.0  06-Jul-2016  1_10_0 libraries add --forceATA and --forceSCSI.  Added
+                     --smartInfo, --showDSTLog, --smartAutoOffline,
+                     --conveyanceDST, --smartAttributeAutosave, and
+                     --smartFeature
+v1.2.1  14-Jul-2016  1_10_1 libraries adds SMART and power management
+                     functions, format polling, endianess detection, buffer
+                     size fixes, SAS device statistics, Win32 IOCTL
+                     pass-through fix on Win8 and higher. Additional checks
+                     when SMART is disabled.
+v1.3.0  01-Sep-2016  1_11_1 libraries updates to various printed message,
+                     minor bug fixes. Fixed --SATInfo command.
+v1.3.0  21-Sep-2016  1_11_2 libraries updates adds --forceATADMA, --forceATAPIO
+                     and --forceATAUDMA  (SATA Only).
+v1.4.0  10-Oct-2016  1_11_4 libraries updates. Support for multiple devices.
+v1.4.0  25-Oct-2016  1_11_5 libraries updates improved LaCie  detection, adds
+                     SAT Vendor ID, SAT Product ID, and SAT Product Revision to
+                     the -i --SATInfo output.
+v1.4.1  27-Oct-2016  1_11_6 libraries updates WWN detection.  Added
+                     --enableLegacyUSBPassthrough
+v1.4.1  03-Nov-2016  1_11_7 libraries fixed issue with SAS EPC power mode
+                     settings.
+v1.4.1  13-Dec-2016  1_11_10 libraries fixes a problem when using maxLBA without
+                     the corresponding command range option, SAS power mode
+                     setting, and Sanitize erase patterns.
+v1.5.0  23-Feb-2017  1_13_0 libraries adds support for SAS 12.0Gb/s and
+                     22.5Gb/s physical bus speeds, support for double buffered
+                     passthrough IOCTLs. New -F, --scanFlags [options:
+                     ignoreCSMI allowDuplicates] for Windows tools. Add CSMI
+                     support to all Windows version tools.
+v1.5.0  06-Mar-2017  1_13_2 libraries adds Enhanced device information output
+                     for SAS features.
+v1.6.0  02-May-2017  1_14_3 libraries.  Adds --seagateClean.
+v1.6.1  15-May-2017  Refinements to --seagateClean.  Fixed an exit code for
+                     unknown options
+v1.7.0  01-Jun-2017  Adds --seagateClean.
+v1.8.0  14-Jun-2017  1_15_0 libraries adds bug fix malformed command line
+                     should exit with code = 1; added detection of parallel ATA
+                     and SCSI speeds; temperature data on ATA now uses the
+                     values from the SCT status log or device statistics log.
+                     Bug fix where the &quot;-d all&quot; was not filtering out csmi
+                     drives like it is supposed to causing duplicate drives to
+                     show up.  Adds the child drive matching options
+                     --childModelMatch, --childOnlyFW, and --childNewFW.  --idd
+                     now supports SAS.  --idd [short | long | repair]  replaces
+                     '70 | 71 | 72' syntax. --abortIDD added.   --setMRIE added.
+v1.9.0  14-Jul-2017  1_16_1 libraries adds support for ATA drives that have the
+                     Sense Data Reporting feature enabled, changes to how we
+                     interpret the completion status from the drive, new Sense
+                     Data ASC, ASCQ definitions from SPC5. Adds --Scan (or -S,
+                     note the capital S) aggressive system scan.
+v1.9.0  27-Jul-2017  1_16_2 libraries enhances Seagate brand detection.
+v1.9.0  19-Sep-2017  1_16_4 libraries fixes SCSI &quot;--progress format&quot;, added
+                     reading remanufacture time for SAS when the drive reports
+                     a time, fixed SAS --abortDST.
+v1.9.0  25-Sep-2017  1_17_0 libraries adds improved SATA device discovery on
+                     SAS adapters, added NVMe read, write &amp; Flush commands.
+v1.9.1  10-Oct-2017  1_17_1 libraries adds Better handling of NVMe as a SCSI
+                     device, SAT library strings, and fixes to Read-Buffer
+                     error history (ISL). Updated copyright notice, invalid
+                     command line options now only display an error instead of
+                     long help. Added showing the SMART trip failure reason when
+                     possible.
+v1.9.1  12-Oct-2017  1_17_3 libraries improves Fast-Format compatibility on SAS.
+v1.9.1  26-Oct-2017  1_17_5 libraries fixes SATA drive discovery behind HBAs
+                     that don't show as SATA and don't support the SAT VPD
+                     page; added Automatic fallback to 12byte CDBs during
+                     initial device discovery;  integrated fixes for SAS
+                     firmware download and fixes for SAS LongDST time
+                     calculation; added detection of TCG Pyrite and Opalite
+                     drives.
+v1.9.1  31-Oct-2017  1_17_6 libraries adds ATA Security compatibility with SATL
+                     on some LSI adapters, corrects firmware download issue
+                     under Windows 10 API.  Added --captive or --foreground.
+v1.9.1  02-Nov-2017  1_17_7 libraries fixes Long DST time on SCSI/SAS products.
+v1.9.1  19-Apr-2018  1_18_0 libraries improves device detection of CD-ROM and
+                     USB flash drives, support for early 90's PATA drives that
+                     don't support LBA mode, bug fix where the last digit of
+                     the SCSI Unit Serial Number was being dropped, additional
+                     logic for deferred download completion status. --scan
+                     --onlySeagate for just Seagate drives in a large system,
+                     Long Drive Self Test Time in the -i output, write protect
+                     status has been added for SCSI and NVMe in the -i output,
+                     IDD enhancements for SAS, IDD enhancements to allow
+                     captive mode on SATA, added USB Hacks to better support
+                     some odd-ball USB devices and prevent crashes and improve
+                     performance for some operations on them by issuing test
+                     unit ready commands when something fails during device
+                     discovery, automatic fall back to SAT 10 byte commands
+                     during device discovery to help work with some USB
+                     devices, some Legacy SCSI support enhancements (partially
+                     from USB hacks development), enhanced SD to SG mapping in
+                     Linux.
+v1.10.0 25-Jul-2018  Adds --defectFormat, --showSCSIDefects
+v1.11.0 21-Sep-2018  1_18_2 libraries Added in reading os-release PRETTY_NAME
+                     field to get the OS name under linux; NVMe enabled;  fixed
+                     a bug in the ATA activate FW command; added in reading ID
+                     Data log and Device statistics logs page 0 to check the
+                     list of supported pages; fixed a bug in the loop used to
+                     read mode pages for -i information on SAS; IDD SAS
+                     improvements; fixed a bug in DST &amp; Clean with ATA drives
+                     behind SCSI controllers. Fix for --modelMatch that have
+                     spaces in the name. Added additional information to the
+                     banner and -V data to show support levels. Add general
+                     support for NVMe and NVMe specific identify data to &quot;-i&quot;
+                     command. Adds --showSMARTErrorLog, --smartErrorLogFormat.
+v1.11.0 18-Oct-2018  1_18_3 libraries Added NVMe generic read command support.
+v1.12.0  03-May-2019 1_19_18 libraries added per device verbosity, --deviceInfo
+                     adds SAS (not SATA) FastFormat for Features Supported
+                     section,  --deviceInfo now gives Low Current Spinup
+                     status.
+v1.12.0  10-Jun-2019 1_19_23 libraries added SNTL (SCSI to NVMe translator),
+                     updated software SAT translator to use dataset management
+                     XL command, fixes for issuing vendor unique commands under
+                     Windows, improved fast format support detection, and
+                     refactored verbose output for NVMe commands.
+v1.12.0 19-Jul-2019  1_19_24 libraries. Added --noTimeLimit.
+v1.13.1 19-Feb-2020  1_21_30 libraries add in check for Elevated Privileges
+                     (sudo, run as administrator) before trying to talk to
+                     devices, new exit code 9 if privileges are missing;
+                     printing the USB VID/PID in the device info; fix to sg
+                     helper to support large systems; many changes in support
+                     of dual actuators (example: warning that EPC settings
+                     affect multiple LUNs); overhaul to USB device detection
+                     and support, incorporating a new USB hacks and workarounds
+                     approach which uses a lookup table listing various USB
+                     bridge VIDs/PIDs and their specific issues; separate
+                     Seagate SAS SN and PCBA SN.
+v1.13.2 13-Apr-2020  1_21_30 libraries, fix memory allocation during the scan
+                     command.
+v2.0.0  20-Nov-2020  Changed how scan-flags are parsed. CSMI rewrite and initial
+                     Intel RST NVMe support added. Numerous code quality improvements
+                     which fixed many potential bugs and memory leaks. Improved
+                     support for openfabrics NVMe drivers. Changed permissions
+                     detection to show warnings rather than errors. Removed obsolete
+                     CSMI and SAT 12B CDB options. CSMI handles now show as csmi:?:?:?
+v2.0.1  12-Feb-2021  Added more information about IDD and aborting IDD to output
+                     to help make it more clear what is happening or what to expect
+                     in certain scenarios.
+                     opensea-transport pulls in some enhancements to try and block
+                     other software or the OS from interrupting IDD while it is running.
+v2.0.1  16-Jun-2021  Pulled in updates to opensea-libs which includes the following:
+                     Minor USB compatibility improvements and more products added
+                     to the list with their specific workarounds.
+                     Updated NVMe compatibility for FreeBSD 11.
+                     Support for detection and showing of concurrent positioning 
+                     (new multi-actuator support from the standards).
+                     Analyzed SMART attribute output for Seagate SATA HDDs
+v2.3.1  28-Feb-2023  Includes new --noBanner option and new fast discovery option
+                     that can be used in situations where super critical performance
+                     is required at a loss of information about a drive's capabilities.
+                     Help now has many more examples of the options in the tool.
+                     Fixed a few bugs in scan and device discovery that could cause
+                     a crash or the tool to list no devices found.
+                     Added option to dump low-level info to assist with debugging.
+                     Added date of manufacture info to the -i output when available.
+                     Fixed some big endian compatibility issues discovered on AIX.
+                     Improved support for detecting SMART trips and DST capabilities
+                     on really old drives that conform to early standards including 
+                     SFF-8035i since definitions on mandatory and optional requirements
+                     have changed a bit over time.
+                     Fixed a bug when listing SCSI defects that would cause it to crash
+                     instead of outputting information.
+v2.3.1  27-Mar-2023  opensea-operations library updated to fix hybrid smart attribute
+                     counters output. Also added note about DST log display order and
+                     fixed attribute 198 name for Seagate HDDs.
+                     opensea-transport updated to fix CSMI scan duplicating devices 
+                     found in certain scenarios.
+v2.3.2  01-Dec-2023  Updated to newer opensea-libs to pull in low-level fixes.
+                     Stopped reading /etc/passwd file to show username in banner.
+                     Banner will now show either &quot;admin&quot;/&quot;root&quot; or &quot;current user&quot;.
+                     Improved parsing of linux distro/release information from
+                     /etc/os-release file.
+                     Fixed a bug in byte swap string used to get ATA MN, SN, FW.
+                     Fixed a bug in getting/reporting power on hours as years, 
+                     days, hours, etc where days was being truncated.
+                     Fixed error reading NVMe features in Windows for drive info.
+                     Fixed SAS Date of manufacture in drive info.
+                     Added detection of HPA security feature.
+                     Added more SMART attributes definitions for Seagate HDDs &amp; SSDs,
+                     and more definitions for Maxtor HDDs.
+                     Improved temperature detection from older HDDs with only
+                     SMART attribute 194 reporting current temperature.
+                     Added separate warning for SMART attributes below threshold that
+                     are not considered prefail/warranty attributes (aka failures).
+                     Fixed output of Seagate Airflow temperature SMART attribute.
+                     Added showing new capacity after changing Max LBA.
+                     Fixed possible segmentation fault when reading /etc/mtab in Linux.
+                     Workaround for some SAS drives on some HBAs reporting incorrect
+                     response to SAT A1h CDB.
+                     Fixed a bug in FreeBSD causing non-data ATA commands to report
+                     all zeroes instead of expected output in RTFRs.
+v2.5.1  28-Aug-2024  Pull in security updates and low-level bug fixes from opensea-libs.
+                     CISS RAID device support for Linux (CCISS, HPSA, and SmartPQI drivers)
+                     Added old SMART offline scan routine as an option.
+                     Fixed how SMART trip reason is displayed.
+                     Improved SMART trip detection algorithm when smart return status command
+                     is not available and attributes and thresholds must be used instead.
+                     SMART trip warning is now formatted according to text from SFF-8055.
+                     Fixed a memory leak from the --progress option
+v2.6.0  28-May-2025  Added support for low-level SCSI rescan in Linux when passing aggressive scan flag -S.
+                     Refactor reading SCSI capacity code which may reduce total commands issued.
+                     Refactored looking up supported SCSI commands with Report Supported operations codes and
+                     legacy CmdDT bit in Inquiry which reduces total commands issued.
+                     Source code level support for OpenBSD, NetBSD, and DragonflyBSD now available.
+                     More source code hardening implemented with new bounds checking functions from
+                     opensea-common library (behave similar to Annex K in C11).
+                     Fixed a bug in reading device information (-i) on USB devices causing the information to be
+                     incomplete.
+                     Fixed big endian system support for all devices, but especially for NVMe.
+                     Fixed looking up SD to SG device handles in Linux.
+                     Added new exit codes for Device Not Found when opening the handle and Device Busy when
+                     attempting to open a handle.
+                     Enhanced file security API to display recommended actions to modify directories to be 
+                     compatible with security requirements when reading or writing a file.
+                     Fixed a crash when reading/writing files located at / in unix-like systems.
+                     Fixed exit code when -d all or --modelMatch are used but all devices are skipped so that 
+                     the exit code is not set to 0 (success) when all the devices were skipped.
+                     Fixed parsing some CLI options to allow empty units like previous versions.
+                     Added new option --showFarm to output parsed FARM logs on Seagate SATA and SAS HDDs.
+                     --deviceStatistics now shows ^ for any statistics that can be reset.
+                     Updated Seagate HDD SMART attributes output for revision Bh.
+v2.6.1  07-Jul-2025  Fixed a bug with scan not showing any output in specific circumstances where number of successfully
+                     enumerated devices is equivalent to the number of unsuccessfully enumerated devices.
+                     Fixed a check for reading correct mode page which may cause changing some SAS features to fail.
+                     Disabled extra CSMI related device scan in Windows that can cause a hang on some chipsets.
+                     Added some more legacy USB devices to list of known devices to support these better when they are used.</PRE>
+<HR>
+<A NAME="file13">
+<H1>SeaChest_Security 13/28</H1>
+[<A HREF="#top">top</A>][<A HREF="#file12">prev</A>][<A HREF="#file14">next</A>]
+<PRE>
+SeaChest_Security                                          Revision: 31-Jul-2025
 ===============================================================================
  SeaChest_Security - Seagate drive utilities
- Copyright (c) 2014-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+ Copyright (c) 2014-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
  See Version History below.
 ===============================================================================
 Welcome to Seagate's SeaChest_Security diagnostic software.
@@ -7381,10 +9019,10 @@ Examples - Windows
 
 ==========================================================================================
  SeaChest_Security - Seagate drive utilities - NVMe Enabled
- Copyright (c) 2014-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
- SeaChest_Security Version: 3.3.0-6_2_0 X86_64
- Build Date: Dec  1 2023
- Today: Mon Dec  4 10:44:18 2023	User: current user
+ Copyright (c) 2014-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+ SeaChest_Security Version: 3.5.2 X86_64
+ Build Date: Jul 30 2025
+ Today: 20250731T113321	User: current user
 ==========================================================================================
 Usage
 =====
@@ -7415,6 +9053,11 @@ Return codes
 	7 = Cannot Open File
 	8 = File Already Exists
 	9 = Need Elevated Privileges
+	10 = Not enough resources
+	11 = Error Writing File
+	12 = Device not found when opening handle.
+	13 = Device not opened. Handle is busy.
+	14 = Insecure Directory to read or write file
 	---SeaChest_Security specific exit codes---
 	32 = Zero Validation Failure
 	Anything else = unknown error
@@ -7422,6 +9065,15 @@ Return codes
 
 Utility Options
 ===============
+	--csmiIgnorePort (Obsolete)
+		This option is obsolete and will be removed in future versions.
+
+	--csmiUsePort (Obsolete)
+		This option is obsolete and will be removed in future versions.
+
+	--csmiVerbose (Obsolete)
+		This option is obsolete and will be removed in future versions.
+
 	--echoCommandLine
 		Echo the command line entered into the utility on the screen.
 
@@ -7509,6 +9161,7 @@ Utility arguments
 	-d, --device [deviceHandle | all]
 		Use this option with most commands to specify the device
 		handle on which to perform an operation. Example: /dev/sg&lt;#&gt;
+		CSMI device handles can be specified as &lt;error&lt;#&gt;&lt;#&gt;&lt;#&gt;&gt;
 		To run across all devices detected in the system, use the
 		&quot;all&quot; argument instead of a device handle.
 		Example: -d all
@@ -7537,6 +9190,9 @@ Utility arguments
 			interfaceNVME = show devices on an NVMe interface
 			sd - show sd device handles
 			sgtosd - show the sd and sg device handle mapping
+			ignoreCSMI - do not scan for any CSMI devices
+			allowDuplicates - allow drives with both CSMI and PD handles
+			                  to show up multiple times in the list
 
 	-i, --deviceInfo
 		Show information and features for the storage device
@@ -7986,785 +9642,39 @@ v3.3.0  01-Dec-2023  Updated to newer opensea-libs to pull in low-level fixes.
                      response to SAT A1h CDB.
                      Fixed a bug in FreeBSD causing non-data ATA commands to report
                      all zeroes instead of expected output in RTFRs.
-</PRE>
-<HR>
-<A NAME="file13">
-<H1>SeaChest_SMART 13/28</H1>
-[<A HREF="#top">top</A>][<A HREF="#file12">prev</A>][<A HREF="#file14">next</A>]
-<PRE>
-SeaChest_SMART                                             Revision: 04-Dec-2023
-===============================================================================
- SeaChest_SMART - Seagate drive utilities
- Copyright (c) 2014-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
- See Version History below.
-===============================================================================
-Welcome to Seagate's SeaChest_SMART diagnostic software.
-
-Disk drives are constantly monitoring and analyzing their own performance,
-integrity and environment.  The current state of this technology is the result
-of more than 20 years of innovative Seagate engineering focused on self-testing.
-
-With the backing of personal computer manufacturers, the disk drive industry
-adopted an analysis system in the 1990's called Self Monitoring Analysis and
-Reporting Technology, or SMART. The idea then and today is to predict a failure
-before it happens. Various attributes are being monitored and measured against
-certain threshold limits. If any one attribute exceeds a threshold then a
-general SATA SMART Status test will change from Pass to Fail.
-
-Many computers automatically check SMART Status when they start up which is
-when most people become aware of the issue. If still under warranty, then SMART
-Status FAIL is a valid condition for warranty replacement.
-
-You can use SeaChest_SMART software with --smartCheck to test the SATA SMART
-status of the drive.
-
-When a SMART Status test has a FAIL it is extremely important that you back up
-all of your important data. SMART Status FAIL is a near-term prediction of
-drive failure and the drive usually functions like normal. Unfortunately, there
-is no way to specifically predict when the failure will occur, so your best
-response is to back up your data as soon as possible.
-
-SeaChest does not interpret attributes or thresholds.  As a practical matter,
-the technology supporting SMART is constantly being improved.  Each new design
-incorporates improvements that increase the accuracy of the SMART prediction.
-As a matter of policy, Seagate does not publish attributes and thresholds.
-Seagate Support does not help to analyze SMART attributes.
-
-In addition, the SMART command set includes short and long Drive Self Test
-(Offline Immediate).
-
-Seagate drives employ a background media scan (BGMS) during idle activity
-times.  The BGMS is a sequential read of sectors from the beginning to the end
-the of the drive.  If BGMS is interrupted it later restarts where it left off.
-BGMS has no effect on performance.  BGMS collects information about
-&quot;suspicious&quot; sectors.  When the Short DST is run the first step is a review of
-these &quot;suspicious&quot; sectors.  It is possible for Short DST to fail quickly if
-one of these BGMS sectors is unreadable.
-
-It may be possible to repair a problem when Short DST fails due to failure to
-read a particular sector (LBA).  You might consider the --seagateClean or
--dstAndClean command line options.  See the sections below &quot;Sector Repair
-Commands&quot; and &quot;Bad LBA (Sector) Found&quot; for more information on this subject.
-
-If you wish to test the drive for physical integrity, please use Short Drive
-Self Test (--shortDST).  Because the BGMS has continuously collected
-information on the entire drive, Short DST is effectively testing the entire
-drive.
-
-This User Guide file contains important information about SeaChest_SMART.
-Please read this entire file before using this software.
-
-SeaChest is a comprehensive, easy-to-use command line diagnostic tool that
-helps you quickly determine the health and status of your Seagate storage
-product. It includes several tests that will examine the physical media on your
-Seagate, Samsung or Maxtor disk drive.
-
-Tests and commands which are completely data safe will run on any disk drive.
-Tests and commands which change the drive (like firmware download or data
-erasure or setting the maximum capacity, etc) are limited to Seagate disk
-drives (this includes Seagate, Maxtor, Samsung and LaCie). Be careful using
-SeaChest because some of the features, like the data erasure options, will
-cause data loss. Seagate is not responsible for lost user data.
-
-Note: One gigabyte, or GB, equals one billion bytes when referring to hard
-drive capacity. This software may use information provided by the operating
-system to display capacity and volume size. The Windows file system uses a
-binary calculation for gibibyte or GiB (2^30) which causes the abbreviated size
-to appear smaller. The total number of bytes on a disk drive divided by the
-decimal calculation for gigabyte or GB (10^9) shows the expected abbreviated
-size. See this FAQ for more information
-&lt;http://knowledge.seagate.com/articles/en_US/FAQ/172191en?language=en_US&gt;.
-
-If this is your drive, you should always keep a current backup of your
-important data.
-
-Usage - Linux (run with sudo)
-=============================
-        SeaChest_SMART [-d &lt;sg_device&gt;] {arguments} {options}
-
-Examples - Linux
-================
-        sudo SeaChest_SMART --scan
-        sudo SeaChest_SMART -d /dev/sg2 -i
-        sudo SeaChest_SMART -d /dev/sg1 --shortDST --poll
-
-Usage - Windows (run as administrator)
-======================================
-        SeaChest_SMART [-d &lt;PD_device&gt;] {arguments} {options}
-
-Examples - Windows
-==================
-        SeaChest_SMART --scan
-        SeaChest_SMART -d PD0 -i
-        SeaChest_SMART -d PD1 --shortDST --poll
-
-==========================================================================================
- SeaChest_SMART - Seagate drive utilities - NVMe Enabled
- Copyright (c) 2014-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
- SeaChest_SMART Version: 2.3.2-6_2_0 X86_64
- Build Date: Dec  1 2023
- Today: Mon Dec  4 10:44:18 2023	User: current user
-==========================================================================================
-Usage
-=====
-	 SeaChest_SMART [-d &lt;sg_device&gt;] {arguments} {options}
-
-Examples
-========
-	SeaChest_SMART --scan
-	SeaChest_SMART -d /dev/sg&lt;#&gt; -i
-	SeaChest_SMART -d /dev/sg&lt;#&gt; --SATInfo
-	SeaChest_SMART -d /dev/sg&lt;#&gt; --llInfo
-	SeaChest_SMART -d /dev/sg&lt;#&gt; --smartCheck
-	SeaChest_SMART -d /dev/sg&lt;#&gt; --shortDST --captive
-	SeaChest_SMART -d /dev/sg&lt;#&gt; --conveyanceDST --poll
-	SeaChest_SMART -d /dev/sg&lt;#&gt; --longDST --poll
-	SeaChest_SMART -d /dev/sg&lt;#&gt; --idd short
-	SeaChest_SMART -d /dev/sg&lt;#&gt; --idd long --captive
-	SeaChest_SMART -d /dev/sg&lt;#&gt; --abortDST
-	SeaChest_SMART -d /dev/sg&lt;#&gt; --showDSTLog
-	SeaChest_SMART -d /dev/sg&lt;#&gt; --smartAttributes hybrid
-	SeaChest_SMART -d /dev/sg&lt;#&gt; --showNvmeHealth
-	SeaChest_SMART -d /dev/sg&lt;#&gt; --deviceStatistics
-	SeaChest_SMART -d /dev/sg&lt;#&gt; --smartFeature enable
-	SeaChest_SMART -d /dev/sg&lt;#&gt; --setMRIE 6
-	SeaChest_SMART -d /dev/sg&lt;#&gt; --smartInfo
-	SeaChest_SMART -d /dev/sg&lt;#&gt; --smartAttributeAutosave disable
-	SeaChest_SMART -d /dev/sg&lt;#&gt; --smartAutoOffline enable
-	SeaChest_SMART -d /dev/sg&lt;#&gt; --showSMARTErrorLog comprehensive
-	SeaChest_SMART -d /dev/sg&lt;#&gt; --showSMARTErrorLog summary --smartErrorLogFormat raw
-	SeaChest_SMART -d /dev/sg&lt;#&gt; --showSCSIDefects g --defectFormat bfi
-	SeaChest_SMART -d /dev/sg&lt;#&gt; --dstAndClean --errorLimit 40
-
-Return codes
-============
-	Generic/Common exit codes
-	0 = No Error Found
-	1 = Error in command line options
-	2 = Invalid Device Handle or Missing Device Handle
-	3 = Operation Failure
-	4 = Operation not supported
-	5 = Operation Aborted
-	6 = File Path Not Found
-	7 = Cannot Open File
-	8 = File Already Exists
-	9 = Need Elevated Privileges
-	Anything else = unknown error
-
-Utility Options
-===============
-	--echoCommandLine
-		Echo the command line entered into the utility on the screen.
-
-	--enableLegacyUSBPassthrough
-		Only use this option on old USB or IEEE1394 (Firewire)
-		products that do not otherwise work with the tool.
-		This option will enable a trial and error method that
-		attempts sending various ATA Identify commands through
-		vendor specific means. Because of this, certain products
-		that may respond in unintended ways since they may interpret
-		these commands differently than the bridge chip the command
-		was designed for.
-
-	--forceATA
-		Using this option will force the current drive to
-		be treated as a ATA drive. Only ATA commands will
-		be used to talk to the drive.
-
-	--forceATADMA	(SATA Only)
-		Using this option will force the tool to issue SAT
-		commands to ATA device using the protocol set to DMA
-		whenever possible (on DMA commands).
-		This option can be combined with --forceATA
-
-	--forceATAPIO	(SATA Only)
-		Using this option will force the tool to issue PIO
-		commands to ATA device when possible. This option can
-		be combined with --forceATA
-
-	--forceATAUDMA	(SATA Only)
-		Using this option will force the tool to issue SAT
-		commands to ATA device using the protocol set to UDMA
-		whenever possible (on DMA commands).
-		This option can be combined with --forceATA
-
-	--forceSCSI
-		Using this option will force the current drive to
-		be treated as a SCSI drive. Only SCSI commands will
-		be used to talk to the drive.
-
-	-h, --help
-		Show utility options and example usage (this output you see now)
-		Please report bugs/suggestions to seaboard@seagate.com.
-		Include the output of --version information in the email.
-
-	--license
-		Display the Seagate End User License Agreement (EULA).
-
-	--modelMatch [model Number]
-		Use this option to run on all drives matching the provided
-		model number. This option will provide a closest match although
-		an exact match is preferred. Ex: ST500 will match ST500LM0001
-
-	--onlyFW [firmware revision]
-		Use this option to run on all drives matching the provided
-		firmware revision. This option will only do an exact match.
-
-	--noTimeLimit
-		Use with utility command arguments which have a built in timeout
-		value. For example, --shortDST has a 10 minute default
-		timeout. In some cases a good drive may need more time to
-		complete the test due to other legitimate system activity.
-
-	--noBanner
-		Use this option to suppress the text banner that displays each time
-		openSeaChest is run.
-
-	--onlySeagate
-		Use this option to match only Seagate drives for the options
-		provided
-
-	-q, --quiet
-		Run SeaChest_SMART in quiet mode. This is the same as
-		-v 0 or --verbose 0
-
-	-v [0-4], --verbose [0 | 1 | 2 | 3 | 4]
-		Show verbose information. Verbosity levels are:
-		0 - quiet
-		1 - default
-		2 - command descriptions
-		3 - command descriptions and values
-		4 - command descriptions, values, and data buffers
-		Example: -v 3 or --verbose 3
-
-	-V, --version
-		Show SeaChest_SMART version and copyright information &amp; exit
-
-
-Utility Arguments
-=================
-	-d, --device [deviceHandle | all]
-		Use this option with most commands to specify the device
-		handle on which to perform an operation. Example: /dev/sg&lt;#&gt;
-		To run across all devices detected in the system, use the
-		&quot;all&quot; argument instead of a device handle.
-		Example: -d all
-		NOTE: The &quot;all&quot; argument is handled by running the
-		      specified options on each drive detected in the
-		      OS sequentially. For parallel operations, please
-		      use a script opening a separate instance for each
-		      device handle.
-
-	-F, --scanFlags [option list]
-		Use this option to control the output from scan with the
-		options listed below. Multiple options can be combined.
-			ata - show only ATA (SATA) devices
-			usb - show only USB devices
-			scsi - show only SCSI (SAS) devices
-			nvme - show only NVMe devices
-			interfaceATA - show devices on an ATA interface
-			interfaceUSB - show devices on a USB interface
-			interfaceSCSI - show devices on a SCSI or SAS interface
-			interfaceNVME = show devices on an NVMe interface
-			sd - show sd device handles
-			sgtosd - show the sd and sg device handle mapping
-
-	-i, --deviceInfo
-		Show information and features for the storage device
-
-	--llInfo
-		Dump low-level information about the device to assist with debugging.
-
-	--poll
-		Use this option to cause another operation to poll for progress
-		until it has completed.  This argument does not return to the
-		command prompt and prints ongoing completion percentages (%)
-		 the final test result.  Full drive procedures will take a
-		very long time.  Used with --sanitize, or --writeSame (SATA).
-
-	--progress [dst, idd]
-		Get the progress for a test that was started quietly without
-		the polling option (default). You must specify a test you wish to
-		get progress from. Ex: &quot;--progress dst&quot; or &quot;--progress sanitize&quot;
-		The progress counts up from 0% to 100%.
-
-	-s, --scan
-		Scan the system and list all storage devices with logical
-		/dev/sg&lt;#&gt; assignments. Shows model, serial and firmware
-		numbers.  If your device is not listed on a scan  immediately
-		after booting, then wait 10 seconds and run it again.
-
-	-S, --Scan
-		This option is the same as --scan or -s,
-		however it will also perform a low level rescan to pick up
-		other devices. This low level rescan may wake devices from low
-		power states and may cause the OS to re-enumerate them.
-		Use this option when a device is plugged in and not discovered in
-		a normal scan.
-		NOTE: A low-level rescan may not be available on all interfaces or
-		all OSs. The low-level rescan is not guaranteed to find additional
-		devices in the system when the device is unable to come to a ready state.
-
-	--SATInfo
-		Displays SATA device information on any interface
-		using both SCSI Inquiry / VPD / Log reported data
-		(translated according to SAT) and the ATA Identify / Log
-		reported data.
-
-	--testUnitReady
-		Issues a SCSI Test Unit Ready command and displays the
-		status. If the drive is not ready, the sense key, asc,
-		ascq, and fru will be displayed and a human readable
-		translation from the SPC spec will be displayed if one
-		is available.
-
-	--fastDiscovery
-		Use this option  to issue a fast scan on the specified drive. 
-
-	--abortDST
-		Abort a diagnostic Drive Self Test that is in progress.
-
-	--abortIDD (Seagate Only)
-		Abort a Seagate In Drive Diagnostic (IDD) that is in progress.
-		This may return failure if IDD is not running or has already
-		completed running.
-
-	--captive or --foreground
-		Use this option to run a DST operation in captive/foreground
-		mode. This mode may allow a device to test more of itself and
-		may be slightly faster than offline/background mode since it does
-		not need to service additional command during the test.
-		When using this mode, the utility must wait the entire time for
-		the DST to complete and progress cannot be indicated during this time.
-
-	--conveyanceDST
-		Execute a conveyance diagnostic drive self test. A conveyance
-		test can be used to check if a drive has incurred handling damage.
-		This test can take up to 2 minutes to complete. Use the --poll
-		argument to make this operation poll for progress until complete.
-		Use the --progress dst command to check on the completion
-		percentage (%) and test result.
-		NOTE: conveyance DST may take longer if there is other disk usage
-		while the DST is running. If the DST takes longer than 10 minutes
-		it will automatically be aborted while polling for progress.
-		To override this behavior, use the --noTimeLimit option.
-
-	--deviceStatistics
-		Use this option to display the device statistics reported
-		by the device. On SATA, this uses the Device Statistics
-		log, and the notifications log (if DSN feature is supported)
-		to display these statistics. On SAS, various log pages are
-		read to collect a bunch of reported parameter information.
-
-	--errorLimit [limit in number of LBAs]
-		Use this option to specify a different error
-		limit for a user generic or long generic read
-		test or DST and Clean. This must be a number of
-		 logical LBAs to have errors. If a drive has multiple
-		 logical sectors per physical sector, this number will
-		be adjusted for you to reflect the drive
-		architecture.
-
-	--idd [short | long]		(Seagate Only)
-		Start an In Drive Diagnostic (IDD) test on a Seagate
-		drive. Not all tests are supported by all products. If a
-		selected test is not supported, the utility will return
-		a error code meaning &quot;not supported&quot;.
-		Short:  Reset and Recalibration test. Be careful running this
-		        test on the boot device.
-		Long:   Reset and Recalibration test and test G list and 
-		        P list
-		Note: the --captive option can be added to run the long test in
-		      foreground/captive mode. This allows for G-list healing
-		      and some additional checks to be performed. This may not
-		      work on some products.
-		Note: Progress cannot be checked for the first 2 minutes of IDD.
-		      The drive is busy with the test and is not able to respond.
-		      Attempting to retrieve progress during this time will hang and
-		      may cause the IDD to abort due to the host issuing resets to
-		      recover access to the drive.
-
-	--longDST
-		Execute a long diagnostic drive self test. This test takes
-		hours to complete.  A 2TB drive may take six (6) hours to
-		complete. Use with the --poll argument to let SeaChest check
-		for progress and print it to the screen until complete.
-		Use the --progress dst command to check on the completion
-		percentage(%) and test result.
-		This test stops on the first error. Use --abortDST
-		to manually stop the test. SAS drives give status in 1%
-		increments. SATA drives give status in 10% increments which
-		means more than an hour may elapse between updates on a SATA
-		drive &gt; 2TB.
-
-		If the --longDST poll option is running and you want to abort
-		the test then you will need to open a second terminal window
-		and run the --abortDST command. Otherwise, it is safe to
-		restart the system while long DST is running which also ends the
-		test.
-		NOTE: Long DST may take longer if there is other disk usage
-		while the DST is running. If the DST takes longer than 5x the
-		drive reported time, it will automatically be aborted while
-		polling for progress.
-		To override this behavior, use the--noTimeLimit option.
-
-	--shortDST
-		Execute a short diagnostic drive self test. This test can take
-		up to 2 minutes to complete. Use the --poll argument to make
-		this operation poll for progress until complete. Use the
-		--progress dst command to check on the completion percentage
-		(%) and test result.
-		NOTE: Short DST may take longer if there is other disk usage
-		while the DST is running. If the DST takes longer than 10 minutes
-		it will automatically be aborted while polling for progress.
-		To override this behavior, use the --noTimeLimit option.
-
-	--showDSTLog
-		This option will show the entries in the DST log.
-		Up to 21 entries may be shown (pending drive support)
-		and will be shown with the most recent entry first.
-
-	--smartCheck
-		Perform a SMART check on a device to see if any internal
-		thresholds have been tripped or if the drive is still operating
-		within specification.
-
-	--smartFeature [ enable | disable ]  (SATA Only)
-		Use this option to enable or disable the SMART
-		feature on a SATA drive.
-		Note: This command is declared obsolete in ACS4.
-
-
-	SATA Only:
-	=========
-	--smartAttributes [raw | hybrid | analyzed]	(SATA Only)
-		The drive will display its list of supported SMART attributes.
-		Some attributes names are commonly standard and most others are
-		vendor unique. In either case, the attribute thresholds are
-		always vendor unique. Most attributes are informational and not
-		used to determine a warranty return. Use the --smartCheck
-		command to determine if one of the warranty attributes has been
-		tripped. Seagate Support does not help to analyze SMART
-		attributes.
-		Output modes:
-		  raw - All hex output for those that need every single bit.
-		  hybrid - classic table view with some interpretation of some
-		           fields. Partial raw interpretation, but not all drive
-		           and firmware combinations are supported.
-		  analyzed - a full breakdown of all parts of each individual
-		             attribute's data. Full raw data interpretation only
-		             available on select devices.
-		NOTE: Migration to device statistics is recommended.
-
-	--smartAttributeAutosave [ enable | disable ]  (SATA Only)
-		Use this option to enable or disable SMART
-		attribute auto-save on an ATA drive.
-		Note: This command is declared obsolete in ACS4.
-
-	--smartAutoOffline [ enable | disable ]  (SATA Only)
-		Use this option to enable or disable SMART
-		auto-off-line feature on an ATA drive.
-
-	--showSMARTErrorLog [ summary | comprehensive ]	(SATA Only)
-		This option will display the ATA SMART Error log on the screen.
-		Use &quot;summary&quot; to view the summary SMART error log (last 5 entries)
-		Use &quot;comprehensive&quot; to view all the entires the drive has available.
-		Specifying &quot;comprehensive&quot; will automatically pull the ext error log
-		on drives that support 48bit LBAs.
-		Note: The summary error log will truncate 48bit commands, so some information
-		      will be missing to describe the operation of certain commands.
-
-	--smartErrorLogFormat [ raw | detailed ]	(SATA Only)
-		Use this option to change the format of the output from the --showSMARTErrorLog
-		option. The default mode is &quot;detailed&quot;
-
-	--smartInfo (SATA Only)
-		This option will show SMART information reported
-		by a given device.
-
-
-	SAS Only:
-	=========
-	--defectFormat [ # | shortBlock | longBlock | xbfi | xchs | bfi | chs ]	(SAS Only)
-		This option set the format of the defects to output.
-		Not all drives will support all defect modes!
-		SSDs will only support block modes!
-		Arguments: (name | #)
-		 shortBlock | 0 - show the defects in short block address mode (drives &lt; 32bit LBA)
-		 xbfi       | 1 - show the defects in extended bytes from index mode
-		 xchs       | 2 - show the defects in extended physical cylinder-head-sector mode
-		 longBlock  | 3 - show the defects in long block address mode (drives &gt; 32bit LBA)
-		 bfi        | 4 - show the defects in bytes from index mode
-		 chs        | 5 - show the defects in physical cylinder-head-sector mode
-
-	--setMRIE [ default | 0 - 6 ]  (SAS Only)
-		Use this option to change the MRIE mode on the informational
-		exceptions mode page.
-		    default - set to the drive default
-		    0 - disable exception reporting
-		    1 - Asynchronous reporting (obsolete)
-		    2 - Establish unit attention condition
-		    3 - Conditionally generate recovered error
-		    4 - Unconditionally generate recovered error
-		    5 - Generate no sense
-		    6 - Report on request
-
-		WARNING: Changing MRIE may affect all LUNs/namespaces for devices
-		         with multiple logical units or namespaces.
-
-	--showSCSIDefects [ p | g | pg ]	(SAS Only)
-		This option will display the SCSI defects on the screen.
-		The arguments to this will tell whether to get the grown, 
-		primary, or primary and grown defects from the drive.
-		Use the --defectFormat option to specify the mode to display the defects.
-		If no mode is specified, physical cylinder-head-sector mode is assumed
-		Arguments:
-		  p - use this option to pull and display the primary (factory) defects
-		  g - use this option to pull and display the grown (reallocated) defects
-		 The above options can be combined to pull and display both defect lists.
-
-
-	NVMe Only:
-	=========
-	--showNvmeHealth	(NVMe Only)
-		The drive will display the NVMe Health log (also called
-		SMART log). All standardized fields will be printed to the
-		screen for the device.
-
-
-Data Destructive Commands
-=========================
-	--dstAndClean
-		Runs DST, then checks for an error and repairs the
-		error if possible. This continues until all errors
-		reported by DST are fixed, or when the error limit is
-		reached. The default limit is 50 errors.
-
-	--seagateClean	(Seagate Only)
-		Checks logs for errors and repairs them if possible.
-		After repairing all errors, each error is read around
-		to check for other errors to repair. Finally, a DST &amp; Clean
-		operation is run to verify the drive is good and no more
-		errors exist. Test will stop when the error limit is reached.
-		The default limit is 50 errors.
-
-
-===============
-Version History - SeaChest_SMART
-===============
-SeaChest_SMART is branched off from SeaChest Basics v1.0.4.
-
-v0.0.1  14-Apr-2015  Initial SMART release.  Added --poll.
-v0.0.2  12-Aug-2015  Added --testUnitReady. Improved device discovery.
-                     Corrections to verbose output.
-v0.0.2  16-Oct-2015  1_7_0 libraries.  Added enhanced version information.
-                     Added -sat12byte to increase compatibility.  Added
-                     --SATInfo to compare ATA vs SCSI identification
-                     differences.
-v1.0.0  02-May-2016  1_9_1 libraries.  Added new verbosity level. Added
-                     --onlySeagate restriction.  Added --modelMatch and
-                     --onlyFW filters. --smartAttributes update, added
-                     --errorLimit, --dstAndClean
-v1.0.2  19-May-2016  1_9_2 libraries fixed scan information from ATAPI devices.
-                     Fixed a bug where we could accidentally clear some stored
-                     identify data from the device structure. Fixed continuing
-                     on when there was a permission denied error opening a
-                     drive. Fixed missing Long DST confirmation.
-v1.0.3  15-Jun-2016  1_9_3 libraries fixed issues with ATA secure erase
-                     commands. Fixed bugs with --modelMatch and --onlyFW
-                     filters.
-v1.2.0  06-Jul-2016  1_10_0 libraries add --forceATA and --forceSCSI.  Added
-                     --smartInfo, --showDSTLog, --smartAutoOffline,
-                     --conveyanceDST, --smartAttributeAutosave, and
-                     --smartFeature
-v1.2.1  14-Jul-2016  1_10_1 libraries adds SMART and power management
-                     functions, format polling, endianess detection, buffer
-                     size fixes, SAS device statistics, Win32 IOCTL
-                     pass-through fix on Win8 and higher. Additional checks
-                     when SMART is disabled.
-v1.3.0  01-Sep-2016  1_11_1 libraries updates to various printed message,
-                     minor bug fixes. Fixed --SATInfo command.
-v1.3.0  21-Sep-2016  1_11_2 libraries updates adds --forceATADMA, --forceATAPIO
-                     and --forceATAUDMA  (SATA Only).
-v1.4.0  10-Oct-2016  1_11_4 libraries updates. Support for multiple devices.
-v1.4.0  25-Oct-2016  1_11_5 libraries updates improved LaCie  detection, adds
-                     SAT Vendor ID, SAT Product ID, and SAT Product Revision to
-                     the -i --SATInfo output.
-v1.4.1  27-Oct-2016  1_11_6 libraries updates WWN detection.  Added
-                     --enableLegacyUSBPassthrough
-v1.4.1  03-Nov-2016  1_11_7 libraries fixed issue with SAS EPC power mode
-                     settings.
-v1.4.1  13-Dec-2016  1_11_10 libraries fixes a problem when using maxLBA without
-                     the corresponding command range option, SAS power mode
-                     setting, and Sanitize erase patterns.
-v1.5.0  23-Feb-2017  1_13_0 libraries adds support for SAS 12.0Gb/s and
-                     22.5Gb/s physical bus speeds, support for double buffered
-                     passthrough IOCTLs. New -F, --scanFlags [options:
-                     ignoreCSMI allowDuplicates] for Windows tools. Add CSMI
-                     support to all Windows version tools.
-v1.5.0  06-Mar-2017  1_13_2 libraries adds Enhanced device information output
-                     for SAS features.
-v1.6.0  02-May-2017  1_14_3 libraries.  Adds --seagateClean.
-v1.6.1  15-May-2017  Refinements to --seagateClean.  Fixed an exit code for
-                     unknown options
-v1.7.0  01-Jun-2017  Adds --seagateClean.
-v1.8.0  14-Jun-2017  1_15_0 libraries adds bug fix malformed command line
-                     should exit with code = 1; added detection of parallel ATA
-                     and SCSI speeds; temperature data on ATA now uses the
-                     values from the SCT status log or device statistics log.
-                     Bug fix where the &quot;-d all&quot; was not filtering out csmi
-                     drives like it is supposed to causing duplicate drives to
-                     show up.  Adds the child drive matching options
-                     --childModelMatch, --childOnlyFW, and --childNewFW.  --idd
-                     now supports SAS.  --idd [short | long | repair]  replaces
-                     '70 | 71 | 72' syntax. --abortIDD added.   --setMRIE added.
-v1.9.0  14-Jul-2017  1_16_1 libraries adds support for ATA drives that have the
-                     Sense Data Reporting feature enabled, changes to how we
-                     interpret the completion status from the drive, new Sense
-                     Data ASC, ASCQ definitions from SPC5. Adds --Scan (or -S,
-                     note the capital S) aggressive system scan.
-v1.9.0  27-Jul-2017  1_16_2 libraries enhances Seagate brand detection.
-v1.9.0  19-Sep-2017  1_16_4 libraries fixes SCSI &quot;--progress format&quot;, added
-                     reading remanufacture time for SAS when the drive reports
-                     a time, fixed SAS --abortDST.
-v1.9.0  25-Sep-2017  1_17_0 libraries adds improved SATA device discovery on
-                     SAS adapters, added NVMe read, write &amp; Flush commands.
-v1.9.1  10-Oct-2017  1_17_1 libraries adds Better handling of NVMe as a SCSI
-                     device, SAT library strings, and fixes to Read-Buffer
-                     error history (ISL). Updated copyright notice, invalid
-                     command line options now only display an error instead of
-                     long help. Added showing the SMART trip failure reason when
-                     possible.
-v1.9.1  12-Oct-2017  1_17_3 libraries improves Fast-Format compatibility on SAS.
-v1.9.1  26-Oct-2017  1_17_5 libraries fixes SATA drive discovery behind HBAs
-                     that don't show as SATA and don't support the SAT VPD
-                     page; added Automatic fallback to 12byte CDBs during
-                     initial device discovery;  integrated fixes for SAS
-                     firmware download and fixes for SAS LongDST time
-                     calculation; added detection of TCG Pyrite and Opalite
-                     drives.
-v1.9.1  31-Oct-2017  1_17_6 libraries adds ATA Security compatibility with SATL
-                     on some LSI adapters, corrects firmware download issue
-                     under Windows 10 API.  Added --captive or --foreground.
-v1.9.1  02-Nov-2017  1_17_7 libraries fixes Long DST time on SCSI/SAS products.
-v1.9.1  19-Apr-2018  1_18_0 libraries improves device detection of CD-ROM and
-                     USB flash drives, support for early 90's PATA drives that
-                     don't support LBA mode, bug fix where the last digit of
-                     the SCSI Unit Serial Number was being dropped, additional
-                     logic for deferred download completion status. --scan
-                     --onlySeagate for just Seagate drives in a large system,
-                     Long Drive Self Test Time in the -i output, write protect
-                     status has been added for SCSI and NVMe in the -i output,
-                     IDD enhancements for SAS, IDD enhancements to allow
-                     captive mode on SATA, added USB Hacks to better support
-                     some odd-ball USB devices and prevent crashes and improve
-                     performance for some operations on them by issuing test
-                     unit ready commands when something fails during device
-                     discovery, automatic fall back to SAT 10 byte commands
-                     during device discovery to help work with some USB
-                     devices, some Legacy SCSI support enhancements (partially
-                     from USB hacks development), enhanced SD to SG mapping in
-                     Linux.
-v1.10.0 25-Jul-2018  Adds --defectFormat, --showSCSIDefects
-v1.11.0 21-Sep-2018  1_18_2 libraries Added in reading os-release PRETTY_NAME
-                     field to get the OS name under linux; NVMe enabled;  fixed
-                     a bug in the ATA activate FW command; added in reading ID
-                     Data log and Device statistics logs page 0 to check the
-                     list of supported pages; fixed a bug in the loop used to
-                     read mode pages for -i information on SAS; IDD SAS
-                     improvements; fixed a bug in DST &amp; Clean with ATA drives
-                     behind SCSI controllers. Fix for --modelMatch that have
-                     spaces in the name. Added additional information to the
-                     banner and -V data to show support levels. Add general
-                     support for NVMe and NVMe specific identify data to &quot;-i&quot;
-                     command. Adds --showSMARTErrorLog, --smartErrorLogFormat.
-v1.11.0 18-Oct-2018  1_18_3 libraries Added NVMe generic read command support.
-v1.12.0  03-May-2019 1_19_18 libraries added per device verbosity, --deviceInfo
-                     adds SAS (not SATA) FastFormat for Features Supported
-                     section,  --deviceInfo now gives Low Current Spinup
-                     status.
-v1.12.0  10-Jun-2019 1_19_23 libraries added SNTL (SCSI to NVMe translator),
-                     updated software SAT translator to use dataset management
-                     XL command, fixes for issuing vendor unique commands under
-                     Windows, improved fast format support detection, and
-                     refactored verbose output for NVMe commands.
-v1.12.0 19-Jul-2019  1_19_24 libraries. Added --noTimeLimit.
-v1.13.1 19-Feb-2020  1_21_30 libraries add in check for Elevated Privileges
-                     (sudo, run as administrator) before trying to talk to
-                     devices, new exit code 9 if privileges are missing;
-                     printing the USB VID/PID in the device info; fix to sg
-                     helper to support large systems; many changes in support
-                     of dual actuators (example: warning that EPC settings
-                     affect multiple LUNs); overhaul to USB device detection
-                     and support, incorporating a new USB hacks and workarounds
-                     approach which uses a lookup table listing various USB
-                     bridge VIDs/PIDs and their specific issues; separate
-                     Seagate SAS SN and PCBA SN.
-v1.13.2 13-Apr-2020  1_21_30 libraries, fix memory allocation during the scan
-                     command.
-v2.0.0  20-Nov-2020  Changed how scan-flags are parsed. CSMI rewrite and initial
-                     Intel RST NVMe support added. Numerous code quality improvements
-                     which fixed many potential bugs and memory leaks. Improved
-                     support for openfabrics NVMe drivers. Changed permissions
-                     detection to show warnings rather than errors. Removed obsolete
-                     CSMI and SAT 12B CDB options. CSMI handles now show as csmi:?:?:?
-v2.0.1  12-Feb-2021  Added more information about IDD and aborting IDD to output
-                     to help make it more clear what is happening or what to expect
-                     in certain scenarios.
-                     opensea-transport pulls in some enhancements to try and block
-                     other software or the OS from interrupting IDD while it is running.
-v2.0.1  16-Jun-2021  Pulled in updates to opensea-libs which includes the following:
-                     Minor USB compatibility improvements and more products added
-                     to the list with their specific workarounds.
-                     Updated NVMe compatibility for FreeBSD 11.
-                     Support for detection and showing of concurrent positioning 
-                     (new multi-actuator support from the standards).
-                     Analyzed SMART attribute output for Seagate SATA HDDs
-v2.3.1  28-Feb-2023  Includes new --noBanner option and new fast discovery option
-                     that can be used in situations where super critical performance
-                     is required at a loss of information about a drive's capabilities.
-                     Help now has many more examples of the options in the tool.
-                     Fixed a few bugs in scan and device discovery that could cause
-                     a crash or the tool to list no devices found.
-                     Added option to dump low-level info to assist with debugging.
-                     Added date of manufacture info to the -i output when available.
-                     Fixed some big endian compatibility issues discovered on AIX.
-                     Improved support for detecting SMART trips and DST capabilities
-                     on really old drives that conform to early standards including 
-                     SFF-8035i since definitions on mandatory and optional requirements
-                     have changed a bit over time.
-                     Fixed a bug when listing SCSI defects that would cause it to crash
-                     instead of outputting information.
-v2.3.1  27-Mar-2023  opensea-operations library updated to fix hybrid smart attribute
-                     counters output. Also added note about DST log display order and
-                     fixed attribute 198 name for Seagate HDDs.
-                     opensea-transport updated to fix CSMI scan duplicating devices 
-                     found in certain scenarios.
-v2.3.2  01-Dec-2023  Updated to newer opensea-libs to pull in low-level fixes.
-                     Stopped reading /etc/passwd file to show username in banner.
-                     Banner will now show either &quot;admin&quot;/&quot;root&quot; or &quot;current user&quot;.
-                     Improved parsing of linux distro/release information from
-                     /etc/os-release file.
-                     Fixed a bug in byte swap string used to get ATA MN, SN, FW.
-                     Fixed a bug in getting/reporting power on hours as years, 
-                     days, hours, etc where days was being truncated.
-                     Fixed error reading NVMe features in Windows for drive info.
-                     Fixed SAS Date of manufacture in drive info.
-                     Added detection of HPA security feature.
-                     Added more SMART attributes definitions for Seagate HDDs &amp; SSDs,
-                     and more definitions for Maxtor HDDs.
-                     Improved temperature detection from older HDDs with only
-                     SMART attribute 194 reporting current temperature.
-                     Added separate warning for SMART attributes below threshold that
-                     are not considered prefail/warranty attributes (aka failures).
-                     Fixed output of Seagate Airflow temperature SMART attribute.
-                     Added showing new capacity after changing Max LBA.
-                     Fixed possible segmentation fault when reading /etc/mtab in Linux.
-                     Workaround for some SAS drives on some HBAs reporting incorrect
-                     response to SAT A1h CDB.
-                     Fixed a bug in FreeBSD causing non-data ATA commands to report
-                     all zeroes instead of expected output in RTFRs.
-</PRE>
+v3.4.1  28-Aug-2024  Pull in security updates and low-level bug fixes from opensea-libs.
+                     CISS RAID device support for Linux (CCISS, HPSA, and SmartPQI drivers)
+                     Improved memory sanitization for provided ATA security password when
+                     the software is done using the password to ensure it has been deleted
+                     from memory.
+v3.5.1  28-May-2025  Added support for low-level SCSI rescan in Linux when passing aggressive scan flag -S.
+                     Refactor reading SCSI capacity code which may reduce total commands issued.
+                     Refactored looking up supported SCSI commands with Report Supported operations codes and
+                     legacy CmdDT bit in Inquiry which reduces total commands issued.
+                     Source code level support for OpenBSD, NetBSD, and DragonflyBSD now available.
+                     More source code hardening implemented with new bounds checking functions from
+                     opensea-common library (behave similar to Annex K in C11).
+                     Fixed a bug in reading device information (-i) on USB devices causing the information to be
+                     incomplete.
+                     Fixed big endian system support for all devices, but especially for NVMe.
+                     Fixed looking up SD to SG device handles in Linux.
+                     Added new exit codes for Device Not Found when opening the handle and Device Busy when
+                     attempting to open a handle.
+                     Enhanced file security API to display recommended actions to modify directories to be 
+                     compatible with security requirements when reading or writing a file.
+                     Fixed a crash when reading/writing files located at / in unix-like systems.
+                     Fixed exit code when -d all or --modelMatch are used but all devices are skipped so that 
+                     the exit code is not set to 0 (success) when all the devices were skipped.
+                     Fixed parsing some CLI options to allow empty units like previous versions.
+                     Added explicit zeroes to clear all memory holding passwords before exit. Many cases were
+                     already covered, but a few more were added.
+v3.5.2  07-Jul-2025  Fixed a bug with scan not showing any output in specific circumstances where number of successfully
+                     enumerated devices is equivalent to the number of unsuccessfully enumerated devices.
+                     Added new exit code for when paths are detected as insecure to be resolved by the user before
+                     files will be accessed in these directories (see https://github.com/Seagate/openSeaChest/wiki/Secure-File-And-Path).
+                     Fixed a check for reading correct mode page which may cause changing some SAS features to fail.
+                     Disabled extra CSMI related device scan in Windows that can cause a hang on some chipsets.
+                     Added some more legacy USB devices to list of known devices to support these better when they are used.</PRE>
 <HR>
 <A NAME="file14">
 <H1>Tool Usage Hints 14/28</H1>
@@ -9086,7 +9996,7 @@ By design, modern disk drives maintain spare sectors for reallocation purposes.
 Usually, sectors become difficult to read long before they become impossible to
 read. In this situation the actual data bytes in the sector are preserved and
 transferred to the new spare during a sector reallocation. Similarly, when a
-disk drive writes data and encounters a problem, the drive firmware retires the
+disk drive writes data and encounters a problem, the drive firmware retries the
 problem sector and activates a replacement before giving successful write
 status.
 
@@ -9786,7 +10696,7 @@ Attribute Name:                   Status: Nominal: Worst:     Raw (hex):
 <H1>Seagate EULA 27/28</H1>
 [<A HREF="#top">top</A>][<A HREF="#file26">prev</A>][<A HREF="#file28">next</A>]
 <PRE>
-Copyright (c) 2014-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+Copyright (c) 2014-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 ======================================================================
 
 			END USER LICENSE AGREEMENT
